@@ -84,8 +84,8 @@ public:
 		{
 			//TODO
 			iterator new_itr;
-			new_ptr.owner = this->owner;
-			new_ptr.ptr = this->ptr - n;
+			new_itr.owner = this->owner;
+			new_itr.ptr = this->ptr - n;
 			return new_itr;
 		}
 		// return the distance between two iterators,
@@ -135,7 +135,7 @@ public:
 			old_one.owner = this->owner;
 			old_one.ptr = this->ptr;
 			this->ptr -= 1 ;
-			return oldone;
+			return old_one;
 		}
 		/**
 		 * TODO --iter
@@ -343,6 +343,7 @@ public:
 		for(int i = 0 ; i < curr_size ; i++){
 			new (this->data + i) T(other.data[i]);
 		}
+		return *this;
 	}
 	/**
 	 * assigns specified element with bounds checking
@@ -472,10 +473,12 @@ public:
 		}
 		/* 开始从最后移动 */
 		for(int i = curr_size ; i > index ; i--){
+			(this->data + i)->~T();
 			new (this->data + i) T(this->data[i-1]);
 		}
 		/* index(包括index) 后的所有元素都被后移了 */
 		/* 没有构造函数，直接new一个 */
+		(this->data + index)->~T();
 		new(this->data + index)T(value);
 
 		curr_size++;
@@ -497,11 +500,13 @@ public:
 		}
 		/* 开始从最后移动 */
 		for(int i = curr_size ; i > ind ; i--){
+			(this->data + i)->~T();
 			new (this->data + i) T(this->data[i-1]);
 		}
 
 		/* index(包括index) 后的所有元素都被后移了 */
 		/* 没有构造函数，直接new一个 */
+		(this->data + index)->~T();
 		new(this->data + ind)T(value);
 
 		curr_size ++;
@@ -518,13 +523,17 @@ public:
 		int index = pos - this->begin();
 
 		for(int i = index ; i < curr_size - 1 ; i++){
+			(this->data + i)->~T();
 			new(this->data + i)T(this->data[i+1]);
 		}
 		(this->data+curr_size-1)->~T();
 		curr_size--;
+		/* 测试过不去，不缩容了 */
+		/*
 		if(curr_size < curr_capacity/2 && curr_capacity > 16){
 			resize(curr_capacity / 2);
 		}
+		*/
 		return iterator(&this->data[index], this);
 	}
 	/**
@@ -538,15 +547,17 @@ public:
 		/* 这个地方就是循环把从ind开始的地方new成下一个,然后对currsize-1处调用析构 */
 		/* 为了保证iterator有效 、 我们要在resize之后再计算iterator */
 		for(int i = ind ; i < curr_size-1 ; i++){
+			(this->data + i)->~T();
 			new(this->data + i) T(this->data[i+1]);
 		}
 		(this->data+curr_size-1)->~T();
-
 		curr_size--;
-
+		/* 测试过不去，不缩容了 */
+		/*
 		if(curr_size < curr_capacity/2 && curr_capacity > 16){
 			resize(curr_capacity / 2);
 		}
+		*/
 
 		return iterator(&this->data[ind], this);
 	}
@@ -575,9 +586,12 @@ public:
 			(data+curr_size-1)->~T();
 			curr_size--;
 			/*如果小于一半，我们就缩容*/
+			/* 目前测试过不去，先不缩了 */
+			/*
 			if(curr_size < curr_capacity/2 && curr_capacity > 16){
 				resize(curr_capacity / 2);
 			}
+			*/
 		}
 	}
 

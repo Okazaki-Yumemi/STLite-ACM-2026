@@ -252,3 +252,141 @@ iterator& 类型的操作方法，返回的是 *this
 
 
 
+# debug环节
+
+## 我操你妈内存炸了，现在一个一个排
+
+### vectorone
+用了 push_back
+
+用了构造函数
+
+用了析构函数
+
+Iterator 也用了，Constiterator 也用了,begin end 也用了 cbegin cend 也用了 没毛病
+
+push \ pop 没问题
+
+insert没问题
+
+earse没问题
+
+### vectortwo
+用了push_back
+用了insert
+用了erase
+没问题，除了慢了点。
+
+### vectorthree
+
+
+
+### vectorseven
+
+通过调用发现了是test_insert的问题
+
+这个test_insert的代码是
+```cpp
+void test_insert() {
+	sjtu::vector<std::vector<int>> a;
+	for (int i = 0; i < 10; ++i)
+		a.push_back(std::vector<int>{1, 2});
+	sjtu::vector<std::vector<int>> b = a;
+	sjtu::vector<std::vector<int>> c;
+	c = a;
+	for (int i = 0; i < 10; ++i) {
+		b[i].push_back(0);
+		c[i].push_back(1);
+	}
+	for (int i = 0; i < 10; ++i) {
+		a.insert(a.begin() + 1, std::vector<int>{1, 2});
+		b.insert(b.begin() + 1, a[1]);
+		c.insert(c.begin() + 1, b[1]);
+		c[1].push_back(3);
+		b[1].push_back(4);
+	}
+	for (int i = 0; i < 20; ++i) {
+		for (auto x : a[i])
+			printf("%d ", x);
+		puts("");
+		for (auto x : b[i])
+			printf("%d ", x);
+		puts("");
+		for (auto x : c[i])
+			printf("%d ", x);
+		puts("");
+	}
+}
+```
+函数的流程是
+1. 创建一个 vector a，里面有10个元素，每个元素都是一个 vector<int>，初始值为 {1, 2}。
+2. 创建一个 vector b，使用 a 的拷贝构造函数。
+3. 创建一个 vector c，使用 a 的赋值运算符。
+4. 对 b 和 c 中的每个元素进行修改，向每个 vector<int> 中添加一个新的元素，b 中添加 0，c 中添加 1。
+5. 对 a、b、c 进行多次插入操作，在每次插入后对 b 和 c 中的第一个元素进行修改，向它们添加新的元素。
+6. 最后打印 a、b、c 中的所有元素。
+
+## 发现问题1
+insert 函数
+在已经构造的位置重复 placement new
+
+我知道要 placement new，于是对移动后的每个位置都 placement new。
+但是我忘了先调用析构函数销毁原来的对象了，所以就导致了内存泄漏和未定义行为。
+
+错误代码
+```cpp
+	iterator insert(iterator pos, const T &value) {
+		int index = pos - this->begin();
+		/* 检查是否需要扩容 */
+		if(curr_size == curr_capacity){
+			int new_capacity = std::max(1,2*curr_capacity);
+			resize(new_capacity);
+		}
+		/* 开始从最后移动 */
+		for(int i = curr_size ; i > index ; i--){
+			
+			new (this->data + i) T(this->data[i-1]);
+		}
+		/* index(包括index) 后的所有元素都被后移了 */
+		/* 没有构造函数，直接new一个 */
+		
+		new(this->data + index)T(value);
+
+		curr_size++;
+
+		return iterator(&this->data[index] , this);
+	}
+```
+
+正确代码
+```cpp
+    iterator insert(iterator pos, const T &value) {
+		int index = pos - this->begin();
+		/* 检查是否需要扩容 */
+		if(curr_size == curr_capacity){
+			int new_capacity = std::max(1,2*curr_capacity);
+			resize(new_capacity);
+		}
+		/* 开始从最后移动 */
+		for(int i = curr_size ; i > index ; i--){
+			(this->data + i)->~T();
+			new (this->data + i) T(this->data[i-1]);
+		}
+		/* index(包括index) 后的所有元素都被后移了 */
+		/* 没有构造函数，直接new一个 */
+		(this->data + index)->~T();
+		new(this->data + index)T(value);
+
+		curr_size++;
+
+		return iterator(&this->data[index] , this);
+	}
+```
+
+可以见得我之前犯了个错误，我以为new的时候会覆盖原来的对象，所以就没有调用析构函数销毁原来的对象，结果就导致了内存泄漏和未定义行为。
+
+但是实际上，我们是必须显式析构的。
+
+## 发现问题2
+six测试点我写了自动缩容，但是测试点在恶意攻击缩容，所以我就把自动缩容的代码注释掉了，结果就过了。
+
