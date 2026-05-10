@@ -56,8 +56,8 @@ new (data + index) T(value);
 ```cpp
 (data + index)->~T();
 ```
-
-### 深拷贝的思考
+## 实现过程中，我犯的错误
+### 深拷贝的纠错
 错误实现：我在这个地方犯了错
 ```cpp
 /* 深拷贝 */
@@ -76,3 +76,27 @@ for(int i = 0 ; i < size ; i++){
 }
 ```
 这样我们就为每个元素创建了一个新的对象，并且调用了复制构造函数来复制内容。
+
+### 纠错
+前面已经决定用 raw memory + placement new + 显示析构
+但是实现过程中混入了
+```cpp
+delete data[i]
+new T(value)
+delete[] data
+```
+实际上，我们应该使用
+```cpp
+(data + index)->~T() // 显示调用析构函数
+new (data + index) T(value) // placement new 构造对象
+operator delete(data) // 释放 raw memory
+```
+不过返回，访问可以用[]，因为我们已经保证了 data 指向的是一段连续的内存。
+
+这个地方为什么要这么做？
+原理是，使用 operator new 分配的内存不会调用构造函数，所以我们需要使用 placement new 来在这块内存上构造对象。同时，使用 operator delete 来释放内存，而不是 delete[]，因为我们没有使用 new[] 来分配内存。
+
+data怎么定义呢？ 这个没有犯错，还好。
+```cpp
+T* data; // 指向 raw memory 的指针
+```
