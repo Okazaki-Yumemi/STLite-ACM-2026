@@ -56,12 +56,24 @@ new (data + index) T(value);
 ```cpp
 (data + index)->~T();
 ```
+## 学会的知识
+static_cast 的讲解:
+static_cast 是 C++ 中的一种类型转换运算符，用于在编译时进行类型转换。它比 C 风格的强制类型转换更安全，因为它会检查类型之间的兼容性，并且不允许一些不安全的转换。
+在我们的实现中，我们使用 static_cast 来将 operator new 返回的 void* 指针转换为 T* 指针，以便我们可以在这块内存上构造 T 对象。
+```cpp
+data = static_cast<T*>(operator new(capacity * sizeof(T)));
+```
+这里的 operator new 返回一个 void* 指针，指向一块足够大的内存来存储 capacity 个 T 对象。我们使用 static_cast 将这个 void* 指针转换为 T* 指针，这样我们就可以通过 data 来访问这块内存，并在上面构造 T 对象。
+
+
 ## 实现过程中，我犯的错误
 ### 深拷贝的纠错
 错误实现：我在这个地方犯了错
+不过static_cast的目标应该是T*而不是T吧,因为我们需要一个指向T类型的指针来存储元素。
+先前写成T的后果是，编译器会报错，因为我们试图将一个指向T类型的指针转换为一个指向T类型的指针，这在语义上是没有意义的。正确的写法应该是：
 ```cpp
 /* 深拷贝 */
-		this->data = static_cast<T>(operator new(capacity * sizeof(T)));
+		this->data = static_cast<T*>(operator new(capacity * sizeof(T)));
 
 		for(int i = 0 ; i < size ; i++){
 			this->data[i] = other->data[i];

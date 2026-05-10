@@ -146,9 +146,9 @@ public:
 		this->curr_size = other.curr_size;
 		this->curr_capacity = other.curr_capacity;
 		/* 深拷贝 */
-		this->data = static_cast<T>(operator new(curr_capacity * sizeof(T)));
+		this->data = static_cast<T*>(operator new(curr_capacity * sizeof(T)));
 
-		for(int i = 0 ; i < size ; i++){
+		for(int i = 0 ; i < curr_size ; i++){
 			new (this->data + i) T(other->data[i]);
 		}
 	}
@@ -167,8 +167,8 @@ public:
 	 */
 	vector &operator=(const vector &other) {
 		/* 边界条件判断，防止出错 */
-		if(this == other){
-			return;
+		if(this == &other){
+			return *this;
 		}
 		/* 删除老数据 */
 		for(int i = 0 ; i < curr_size ; i++){
@@ -180,7 +180,7 @@ public:
 		this->curr_size = other.curr_size;
 		this->curr_capacity = other.curr_capacity;
 		/* 深拷贝 */
-		this->data = static_cast<T>(operator new(curr_capacity* sizeof(T)));
+		this->data = static_cast<T*>(operator new(curr_capacity* sizeof(T)));
 
 		for(int i = 0 ; i < curr_size ; i++){
 			new (this->data + i) T(other->data[i]);
@@ -193,7 +193,7 @@ public:
 	T & at(const size_t &pos) {
 		/* 查错 */
 		if(pos < 0 || pos >= curr_size){
-			throw(index_out_of_bound);
+			throw index_out_of_bound();
 		}else{
 			return data[pos];
 		}
@@ -201,7 +201,7 @@ public:
 	const T & at(const size_t &pos) const {
 		/* 查错 */
 		if(pos < 0 || pos >= curr_size){
-			throw(index_out_of_bound);
+			throw index_out_of_bound();
 		}else{
 			return data[pos];
 		}
@@ -216,7 +216,7 @@ public:
 		/* 这个地方有写boundary检测的需求，我们就加上 */
 		/* 查错 */
 		if(pos < 0 || pos >= curr_size){
-			throw(index_out_of_bound);
+			throw index_out_of_bound();
 		}else{
 			return data[pos];
 		}
@@ -224,7 +224,7 @@ public:
 	const T & operator[](const size_t &pos) const {
 		/* 查错 */
 		if(pos < 0 || pos >= curr_size){
-			throw(index_out_of_bound);
+			throw index_out_of_bound();
 		}else{
 			return data[pos];
 		}
@@ -235,7 +235,7 @@ public:
 	 */
 	const T & front() const {
 		/*边界条件检查*/
-		if(curr_size == 0 ) throw(container_is_empty);
+		if(curr_size == 0 ) throw container_is_empty();
 		else{
 			return this->data[0];
 		}
@@ -245,7 +245,7 @@ public:
 	 * throw container_is_empty if size == 0
 	 */
 	const T & back() const {
-		if( curr_size == 0) throw(container_is_empty);
+		if( curr_size == 0) throw container_is_empty();
 		else{
 			return this->data[curr_size-1];
 		}
@@ -280,8 +280,9 @@ public:
 	void clear() {
 		for(int i = 0 ; i < curr_size ; i++){
 			/* 显式调用析构函数 */
-			delete (data + i)->~T();
+			(data + i)->~T();
 		}
+		curr_size = 0;
 	}
 	/**
 	 * inserts value before pos
@@ -326,11 +327,12 @@ public:
 	 * throw container_is_empty if size() == 0
 	 */
 	void pop_back() {
-		if(curr_size == 0) throw(container_is_empty);
+		if(curr_size == 0) throw container_is_empty();
 		else{
 			T return_val = this->data[curr_size-1];
 			/* 显式析构 */
-			(data+curr_size)->~T();
+			(data+curr_size-1)->~T();
+			curr_size--;
 			/*如果小于一半，我们就缩容*/
 			if(curr_size < curr_capacity/2 && curr_capacity > 16){
 				resize(curr_capacity / 2);
@@ -341,7 +343,7 @@ public:
 
 	void resize(int new_capacity){
 		/* 新的数组 */
-		T* new_data = static_cast<T>(operator new(new_capacity * sizeof(T)));
+		T* new_data = static_cast<T*>(operator new(new_capacity * sizeof(T)));
 
 		/* 把老数组拷贝到新的数组 */
 		for(int i = 0 ; i < curr_size ; i++){
@@ -351,6 +353,7 @@ public:
 		/* 指针改变指向 */
 		operator delete(data);
 		data = new_data;
+		curr_capacity = new_capacity;
 		return;
 	}
 };
