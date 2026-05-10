@@ -56,3 +56,23 @@ new (data + index) T(value);
 ```cpp
 (data + index)->~T();
 ```
+
+### 深拷贝的思考
+错误实现：我在这个地方犯了错
+```cpp
+/* 深拷贝 */
+		this->data = static_cast<T>(operator new(capacity * sizeof(T)));
+
+		for(int i = 0 ; i < size ; i++){
+			this->data[i] = other->data[i];
+		}
+```
+这里的深拷贝其实是浅拷贝，因为我们只是复制了指针地址，而没有复制指针指向的内容。正确的深拷贝应该是为每个元素调用复制构造函数，或者使用 placement new 来构造新的对象。
+```cpp
+/* 正确的深拷贝 */
+this->data = static_cast<T*>(operator new(capacity * sizeof(T)));
+for(int i = 0 ; i < size ; i++){
+    new (this->data + i) T(other->data[i]);
+}
+```
+这样我们就为每个元素创建了一个新的对象，并且调用了复制构造函数来复制内容。

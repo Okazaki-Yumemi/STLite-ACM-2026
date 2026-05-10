@@ -15,7 +15,12 @@ namespace sjtu
 template<typename T>
 class vector
 {
+	
 public:
+	/* 定义基本参数 */
+	int size;
+	int capacity;
+	T* data;	
 	/**
 	 * TODO
 	 * a type for actions of the elements of a vector, and you should write
@@ -129,40 +134,121 @@ public:
 	 * TODO Constructs
 	 * At least two: default constructor, copy constructor
 	 */
-	vector() {}
-	vector(const vector &other) {}
+	vector() {
+		/*初始化容量*/
+		size = 0;
+		capacity = 8;
+		/* 使用operator new 方法*/
+		data = static_cast<T*>(operator new(capacity * sizeof(T)));
+	}
+	vector(const vector &other) {
+		/* 初始化容量 */
+		this->size = other.size;
+		this->capacity = other.capacity;
+		/* 深拷贝 */
+		this->data = static_cast<T>(operator new(capacity * sizeof(T)));
+
+		for(int i = 0 ; i < size ; i++){
+			new (this->data + i) T(other->data[i]);
+		}
+	}
 	/**
 	 * TODO Destructor
 	 */
-	~vector() {}
+	~vector() {
+		for(int i = 0 ; i < size ; i++){
+			delete data[i];
+		}
+		delete[] data;
+	}
 	/**
 	 * TODO Assignment operator
 	 */
-	vector &operator=(const vector &other) {}
+	vector &operator=(const vector &other) {
+		/* 边界条件判断，防止出错 */
+		if(this == other){
+			return;
+		}
+		/* 删除老数据 */
+		for(int i = 0 ; i < size ; i++){
+			delete data[i];
+		}
+		delete[] data;
+		
+		/* 同复制构造函数 */
+		this->size = other.size;
+		this->capacity = other.capacity;
+		/* 深拷贝 */
+		this->data = static_cast<T>(operator new(capacity* sizeof(T)));
+
+		for(int i = 0 ; i < size ; i++){
+			new (this->data + i) T(other->data[i]);
+		}
+	}
 	/**
 	 * assigns specified element with bounds checking
 	 * throw index_out_of_bound if pos is not in [0, size)
 	 */
-	T & at(const size_t &pos) {}
-	const T & at(const size_t &pos) const {}
+	T & at(const size_t &pos) {
+		/* 查错 */
+		if(pos < 0 || pos >= size){
+			throw(index_out_of_bound);
+		}else{
+			return data[pos];
+		}
+	}
+	const T & at(const size_t &pos) const {
+		/* 查错 */
+		if(pos < 0 || pos >= size){
+			throw(index_out_of_bound);
+		}else{
+			return data[pos];
+		}
+	}
 	/**
 	 * assigns specified element with bounds checking
 	 * throw index_out_of_bound if pos is not in [0, size)
 	 * !!! Pay attentions
 	 *   In STL this operator does not check the boundary but I want you to do.
 	 */
-	T & operator[](const size_t &pos) {}
-	const T & operator[](const size_t &pos) const {}
+	T & operator[](const size_t &pos) {
+		/* 这个地方有写boundary检测的需求，我们就加上 */
+		/* 查错 */
+		if(pos < 0 || pos >= size){
+			throw(index_out_of_bound);
+		}else{
+			return data[pos];
+		}
+	}
+	const T & operator[](const size_t &pos) const {
+		/* 查错 */
+		if(pos < 0 || pos >= size){
+			throw(index_out_of_bound);
+		}else{
+			return data[pos];
+		}
+	}
 	/**
 	 * access the first element.
 	 * throw container_is_empty if size == 0
 	 */
-	const T & front() const {}
+	const T & front() const {
+		/*边界条件检查*/
+		if(size == 0 ) throw(container_is_empty);
+		else{
+			return this->data[0];
+		}
+	}
 	/**
 	 * access the last element.
 	 * throw container_is_empty if size == 0
 	 */
-	const T & back() const {}
+	const T & back() const {
+		if( size == 0) throw(container_is_empty);
+		else{
+			return this->data[size-1];
+		}
+	}
 	/**
 	 * returns an iterator to the beginning.
 	 */
@@ -178,15 +264,23 @@ public:
 	/**
 	 * checks whether the container is empty
 	 */
-	bool empty() const {}
+	bool empty() const {
+		return size == 0;
+	}
 	/**
 	 * returns the number of elements
 	 */
-	size_t size() const {}
+	size_t size() const {
+		return (size_t) size;
+	}
 	/**
 	 * clears the contents
 	 */
-	void clear() {}
+	void clear() {
+		for(int i = 0 ; i < size ; i++){
+			delete this->data[i];
+		}
+	}
 	/**
 	 * inserts value before pos
 	 * returns an iterator pointing to the inserted value.
@@ -214,12 +308,48 @@ public:
 	/**
 	 * adds an element to the end.
 	 */
-	void push_back(const T &value) {}
+	void push_back(const T &value) {
+		/* 发现已经满了 */
+		if(size == capacity){
+			int new_capacity = max(1,2*capacity);
+			resize(new_capacity);
+		}
+		/* 扩容完成 */
+		this->data[i] = new T(value);
+		size++;
+		return;
+	}
 	/**
 	 * remove the last element from the end.
 	 * throw container_is_empty if size() == 0
 	 */
-	void pop_back() {}
+	void pop_back() {
+		if(size == 0) throw(container_is_empty);
+		else{
+			T return_val = this->data[size-1];
+			delete this->data[size-1];
+			/*如果小于一半，我们就缩容*/
+			if(size < capacity/2 && capacity > 16){
+				resize(capacity / 2);
+			}
+			return return_val;
+		}
+	}
+
+	void resize(int new_capacity){
+		/* 新的数组 */
+		T* new_data = static_cast<T>(operator new(new_capacity * sizeof(T)));
+
+		/* 把老数组拷贝到新的数组 */
+		for(int i = 0 ; i < size ; i++){
+			new(new_data + i) T(this->data[i]);
+			delete this->data[i];
+		}
+		/* 指针改变指向 */
+		delete data;
+		data = new_data;
+		return;
+	}
 };
 
 
