@@ -189,7 +189,104 @@ public:
 
 	private:
 		/*TODO*/
+	
+	public:
+		const T* ptr;
+		const vector<T>* owner;
+		/* 构造函数和前面大差不差，这个地方额外的增加一个从普通iterator派生 */
+		const_iterator(){
+			this->ptr = nullptr;
+			this->owner = nullptr;
+		}
+		const_iterator(T* place , const vector<T>* parent){
+			this->owner = parent;
+			this->ptr = place;
+		}
+		const_iterator(iterator it){
+			this->owner = it->owner;
+			this->ptr = it->ptr;
+		}
 
+		const_iterator operator+(const int &n) const{
+			const_iterator new_itr;
+			new_itr.owner = this->owner;
+			new_itr.ptr = this->ptr + n;
+			return new_itr;
+		}
+
+		const_iterator operator-(const int &n) const{
+			const_iterator new_itr;
+			new_itr.owner = this->owner;
+			new_itr.ptr = this->ptr - n;
+			return new_itr;
+		}
+
+		int operator-(const const_iterator &rhs) const{
+			if(this->owner != rhs.owner) throw invalid_iterator();
+			else{
+				return (int) (this->ptr - rhs.ptr);
+			}
+		}
+
+		const_iterator& operator+=(cosnt int &n){
+			this->ptr += n;
+			return *this;
+		}
+
+		const_iterator& operator-=(const int &n){
+			this->ptr -= n;
+			return *this;
+		}
+
+		const_iterator operator++(int){
+			const_iterator old_one;
+			old_one.owner = this->owner;
+			old_one.ptr = this->ptr;
+			this->ptr ++;
+			return old_one;
+		}
+
+		const_iterator& operator++(){
+			this->ptr ++;
+			return *this;
+		}
+
+		const_iterator operator--(int){
+			const_iterator old_one;
+			old_one.owner = this->owner;
+			old_one.ptr = this->ptr;
+			this->ptr --;
+			return old_one;
+		} 
+		
+		const_iterator& operator--(){
+			this->ptr --;
+			return *this;
+		}
+
+		const T& operator*() const{
+			return *this->ptr;
+		}
+
+		const T* operator->() const{
+			return this->ptr;
+		}
+
+		bool operator==(const iterator &rhs) const{
+			return rhs.owner == this->owner && this->ptr == rhs.ptr;
+		}
+		
+		bool operator==(const const_iterator &rhs) const{
+			return rhs.owner == this->owner && this->ptr == rhs.ptr;
+		}
+
+		bool operator!=(const iterator &rhs) const{
+			return !this->operator==(rhs);
+		}
+
+		bool operator!=(const const_iterator &rhs) const{
+			return !this->operator==(rhs);
+		}
 	};
 	/**
 	 * TODO Constructs
