@@ -203,8 +203,8 @@ public:
 			this->ptr = place;
 		}
 		const_iterator(iterator it){
-			this->owner = it->owner;
-			this->ptr = it->ptr;
+			this->owner = it.owner;
+			this->ptr = it.ptr;
 		}
 
 		const_iterator operator+(const int &n) const{
@@ -427,15 +427,15 @@ public:
 	 * returns an iterator to the end.
 	 */
 	iterator end() {
-		return iterator(&this->data[this->curr_size-1] , this);
+		return iterator(&this->data[this->curr_size] , this);
 	}
 
 	const_iterator end() const {
-		return const_iterator(&this->data[this->curr_size-1] , this);
+		return const_iterator(&this->data[this->curr_size] , this);
 	}
 	
 	const_iterator cend() const {
-		return const_iterator(&this->data[this->curr_size-1] , this);
+		return const_iterator(&this->data[this->curr_size] , this);
 	}
 
 	/**
@@ -471,9 +471,14 @@ public:
 			int new_capacity = std::max(1,2*curr_capacity);
 			resize(new_capacity);
 		}
+		if(index == curr_size){
+			new (this->data + index) T(value);
+			curr_size++;
+			return iterator(&this->data[index] , this);
+		}
 		/* 开始从最后移动 */
 		for(int i = curr_size ; i > index ; i--){
-			(this->data + i)->~T();
+			if(i!=curr_size) (this->data + i)->~T();
 			new (this->data + i) T(this->data[i-1]);
 		}
 		/* index(包括index) 后的所有元素都被后移了 */
@@ -493,20 +498,28 @@ public:
 	 */
 	iterator insert(const size_t &ind, const T &value) {
 		if(ind > curr_size) throw index_out_of_bound();
+		
 		/* 这个函数比上面那个简单一些，省去了取指的部分 */
 		if(curr_size == curr_capacity){
 			int new_capacity = std::max(1,2*curr_capacity);
 			resize(new_capacity);
 		}
+
+		if(ind == curr_size){
+			new (this->data + ind) T(value);
+			curr_size++;
+			return iterator(&this->data[ind] , this);
+		}
+
 		/* 开始从最后移动 */
 		for(int i = curr_size ; i > ind ; i--){
-			(this->data + i)->~T();
+			if(i!=curr_size) (this->data + i)->~T();
 			new (this->data + i) T(this->data[i-1]);
 		}
 
 		/* index(包括index) 后的所有元素都被后移了 */
 		/* 没有构造函数，直接new一个 */
-		(this->data + index)->~T();
+		(this->data + ind)->~T();
 		new(this->data + ind)T(value);
 
 		curr_size ++;

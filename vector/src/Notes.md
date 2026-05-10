@@ -390,3 +390,43 @@ insert 函数
 ## 发现问题2
 six测试点我写了自动缩容，但是测试点在恶意攻击缩容，所以我就把自动缩容的代码注释掉了，结果就过了。
 
+## 发现问题3
+
+end()的错误，一开始返回的是 data+curr_size-1，结果就导致了越界访问，后来改成 data+curr_size 就好了。
+
+## 发现问题4
+
+析构的未构造对象，data[curr_size] 这个位置是未构造的对象，不能调用析构函数销毁它，否则就会导致未定义行为。正确的做法是只调用已经构造的对象的析构函数，也就是 data[0] 到 data[curr_size - 1] 这部分内存。
+一开始为了方便写循环，我写成了 data[curr_size]，结果就导致了未定义行为，后来改成 特判 就好了。
+
+````cpp
+	iterator insert(iterator pos, const T &value) {
+		int index = pos - this->begin();
+		/* 检查是否需要扩容 */
+		if(curr_size == curr_capacity){
+			int new_capacity = std::max(1,2*curr_capacity);
+			resize(new_capacity);
+		}
+		if(index == curr_size){
+			new (this->data + index) T(value);
+			curr_size++;
+			return iterator(&this->data[index] , this);
+		}
+		/* 开始从最后移动 */
+		for(int i = curr_size ; i > index ; i--){
+			if(i!=curr_size) (this->data + i)->~T();
+			new (this->data + i) T(this->data[i-1]);
+		}
+		/* index(包括index) 后的所有元素都被后移了 */
+		/* 没有构造函数，直接new一个 */
+		(this->data + index)->~T();
+		new(this->data + index)T(value);
+
+		curr_size++;
+
+		return iterator(&this->data[index] , this);
+	}
+```
+这个地方可以看到如果是index == curr_size 的话，就直接在这个位置构造一个新的对象就好了，不需要移动元素了。否则的话，就需要先移动元素，然后在 index 位置构造一个新的对象。
+
+然后在循环移动的适合，如果 i != curr_size 的话，才调用析构函数销毁原来的对象，因为 data[curr_size] 这个位置是未构造的对象，不能调用析构函数销毁它，否则就会导致未定义行为。正确的做法是只调用已经构造的对象的析构函数，也就是 data[0] 到 data[curr_size - 1] 这部分内存。
