@@ -56,6 +56,18 @@ public:
 		 *   just add whatever you want.
 		 */
 	public:
+		/* 参数和构造,ptr指向位置,owner 表示父亲 */
+		T* ptr;
+		const vector<T>* owner;
+		iterator(){
+			ptr = nullptr;
+			owner = nullptr;
+		}
+		iterator(T* place , const vector<T>* parent){
+			owner = parent;
+			ptr = place;
+		}
+
 		/**
 		 * return a new iterator which pointer n-next elements
 		 * as well as operator-
@@ -63,55 +75,104 @@ public:
 		iterator operator+(const int &n) const
 		{
 			//TODO
+			iterator new_itr;
+			new_itr.owner = this->owner;
+			new_itr.ptr = this->ptr + n;
+			return new_itr;
 		}
 		iterator operator-(const int &n) const
 		{
 			//TODO
+			iterator new_itr;
+			new_ptr.owner = this->owner;
+			new_ptr.ptr = this->ptr - n;
+			return new_itr;
 		}
 		// return the distance between two iterators,
 		// if these two iterators point to different vectors, throw invaild_iterator.
 		int operator-(const iterator &rhs) const
 		{
 			//TODO
+			if(this->owner != rhs.owner) throw invalid_iterator();
+			else{
+				return (int) (this->ptr - rhs.ptr);
+			}
 		}
 		iterator& operator+=(const int &n)
 		{
 			//TODO
+			this->ptr = this->ptr + n;
+			return *this;
 		}
 		iterator& operator-=(const int &n)
 		{
 			//TODO
+			this->ptr = this->ptr - n;
+			return *this;
 		}
 		/**
 		 * TODO iter++
 		 */
-		iterator operator++(int) {}
+		iterator operator++(int) {
+			iterator old_one;
+			old_one.owner = this->owner;
+			old_one.ptr = this->ptr;
+			this->ptr += 1 ;
+			return old_one;
+		}
 		/**
 		 * TODO ++iter
 		 */
-		iterator& operator++() {}
+		iterator& operator++() {
+			this->ptr += 1;
+			return *this;
+		}
 		/**
 		 * TODO iter--
 		 */
-		iterator operator--(int) {}
+		iterator operator--(int) {
+			iterator old_one;
+			old_one.owner = this->owner;
+			old_one.ptr = this->ptr;
+			this->ptr -= 1 ;
+			return oldone;
+		}
 		/**
 		 * TODO --iter
 		 */
-		iterator& operator--() {}
+		iterator& operator--() {
+			this->ptr -= 1;
+			return *this;
+		}
 		/**
 		 * TODO *it
 		 */
-		T& operator*() const{}
+		T& operator*() const{
+			return *this->ptr;
+		}
+
+		T* operator->() const{
+			return this->ptr;
+		}
+
 		/**
 		 * a operator to check whether two iterators are same (pointing to the same memory address).
 		 */
-		bool operator==(const iterator &rhs) const {}
-		bool operator==(const const_iterator &rhs) const {}
+		bool operator==(const iterator &rhs) const {
+			return rhs.owner == this->owner  && this->ptr == rhs.ptr;
+		}
+		bool operator==(const const_iterator &rhs) const {
+			return rhs.owner == this->owner  && this->ptr == rhs.ptr;
+		}
 		/**
 		 * some other operator for iterator.
 		 */
-		bool operator!=(const iterator &rhs) const {}
-		bool operator!=(const const_iterator &rhs) const {}
+		bool operator!=(const iterator &rhs) const {
+			return !this->operator==(rhs);
+		}
+		bool operator!=(const const_iterator &rhs) const {
+			return !this->operator==(rhs);
+		}
 	};
 	/**
 	 * TODO
