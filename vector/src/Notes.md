@@ -153,6 +153,26 @@ iterator& operator++() {
 const_iterator 和 iterator 的区别在于，const_iterator 不允许通过它来修改元素的值。也就是说，
 const_iterator 的解引用操作返回的是 const T&，而不是 T&。
 
+除了 operator* 和 operator-> 返回 const T& 和 const T* 以外，const_iterator 的其他操作和 iterator 是一样的。
+
+cbegin 和 cend 和普通的 begin 和 end 的区别在于，cbegin 和 cend 返回的是 const_iterator，而 begin 和 end 返回的是 iterator。这意味着通过 cbegin 和 cend 获取的迭代器不能用于修改元素的值，而通过 begin 和 end 获取的迭代器可以用于修改元素的值.
+
+
+### iterator操作函数的讲解
+
+insert: insert插入一个元素到指定位置，返回一个指向新插入元素的 iterator.
+
+erase: erase删除指定位置的元素，返回一个指向被删除元素后面那个元素的 iterator.
+
+先讲insert的思路，我们首先把iterator pos 减去 begin,得到index,然后从最后一个元素开始后移，直到index位置，然后在index位置构造一个新的元素，最后size++，返回begin() + index。
+
+这个地方如果size不够了，就先调用一次扩容函数，扩容函数会重新分配内存并且把原来的元素复制过去。扩容完成后，再进行插入操作.
+
+但是我们注意到，如果我们扩容，内存地址会改变，所以得先拿到index，再扩容，再插入。
+
+
+
+
 
 ## 实现过程中，我犯的错误
 ### 深拷贝的纠错

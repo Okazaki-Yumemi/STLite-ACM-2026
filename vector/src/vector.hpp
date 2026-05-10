@@ -228,7 +228,7 @@ public:
 			}
 		}
 
-		const_iterator& operator+=(cosnt int &n){
+		const_iterator& operator+=(const int &n){
 			this->ptr += n;
 			return *this;
 		}
@@ -330,7 +330,7 @@ public:
 		}
 		/* 删除老数据 */
 		for(int i = 0 ; i < curr_size ; i++){
-			(data + i)->~T();
+			(this->data + i)->~T();
 		}
 		operator delete(data);
 		
@@ -411,15 +411,32 @@ public:
 	/**
 	 * returns an iterator to the beginning.
 	 */
-	iterator begin() {}
-	const_iterator begin() const {}
-	const_iterator cbegin() const {}
+	iterator begin() {
+		return iterator(&this->data[0], this);
+	}
+	
+	const_iterator begin() const {
+		return const_iterator(&this->data[0],this);
+	}
+	
+	const_iterator cbegin() const {
+		return const_iterator(&this->data[0],this);
+	}
 	/**
 	 * returns an iterator to the end.
 	 */
-	iterator end() {}
-	const_iterator end() const {}
-	const_iterator cend() const {}
+	iterator end() {
+		return iterator(&this->data[this->curr_size-1] , this);
+	}
+
+	const_iterator end() const {
+		return const_iterator(&this->data[this->curr_size-1] , this);
+	}
+	
+	const_iterator cend() const {
+		return const_iterator(&this->data[this->curr_size-1] , this);
+	}
+
 	/**
 	 * checks whether the container is empty
 	 */
@@ -446,26 +463,93 @@ public:
 	 * inserts value before pos
 	 * returns an iterator pointing to the inserted value.
 	 */
-	iterator insert(iterator pos, const T &value) {}
+	iterator insert(iterator pos, const T &value) {
+		int index = pos - this->begin();
+		/* 检查是否需要扩容 */
+		if(curr_size == curr_capacity){
+			int new_capacity = std::max(1,2*curr_capacity);
+			resize(new_capacity);
+		}
+		/* 开始从最后移动 */
+		for(int i = curr_size ; i > index ; i--){
+			new (this->data + i) T(this->data[i-1]);
+		}
+		/* index(包括index) 后的所有元素都被后移了 */
+		/* 没有构造函数，直接new一个 */
+		new(this->data + index)T(value);
+
+		curr_size++;
+
+		return iterator(&this->data[index] , this);
+	}
 	/**
 	 * inserts value at index ind.
 	 * after inserting, this->at(ind) == value
 	 * returns an iterator pointing to the inserted value.
 	 * throw index_out_of_bound if ind > size (in this situation ind can be size because after inserting the size will increase 1.)
 	 */
-	iterator insert(const size_t &ind, const T &value) {}
+	iterator insert(const size_t &ind, const T &value) {
+		if(ind > curr_size) throw index_out_of_bound();
+		/* 这个函数比上面那个简单一些，省去了取指的部分 */
+		if(curr_size == curr_capacity){
+			int new_capacity = std::max(1,2*curr_capacity);
+			resize(new_capacity);
+		}
+		/* 开始从最后移动 */
+		for(int i = curr_size ; i > ind ; i--){
+			new (this->data + i) T(this->data[i-1]);
+		}
+
+		/* index(包括index) 后的所有元素都被后移了 */
+		/* 没有构造函数，直接new一个 */
+		new(this->data + ind)T(value);
+
+		curr_size ++;
+
+		return iterator(&this->data[ind] , this);
+
+	}
 	/**
 	 * removes the element at pos.
 	 * return an iterator pointing to the following element.
 	 * If the iterator pos refers the last element, the end() iterator is returned.
 	 */
-	iterator erase(iterator pos) {}
+	iterator erase(iterator pos) {
+		int index = pos - this->begin();
+
+		for(int i = index ; i < curr_size - 1 ; i++){
+			new(this->data + i)T(this->data[i+1]);
+		}
+		(this->data+curr_size-1)->~T();
+		curr_size--;
+		if(curr_size < curr_capacity/2 && curr_capacity > 16){
+			resize(curr_capacity / 2);
+		}
+		return iterator(&this->data[index], this);
+	}
 	/**
 	 * removes the element with index ind.
 	 * return an iterator pointing to the following element.
 	 * throw index_out_of_bound if ind >= size
 	 */
-	iterator erase(const size_t &ind) {}
+	iterator erase(const size_t &ind) {
+		if(ind >= curr_size) throw index_out_of_bound();
+
+		/* 这个地方就是循环把从ind开始的地方new成下一个,然后对currsize-1处调用析构 */
+		/* 为了保证iterator有效 、 我们要在resize之后再计算iterator */
+		for(int i = ind ; i < curr_size-1 ; i++){
+			new(this->data + i) T(this->data[i+1]);
+		}
+		(this->data+curr_size-1)->~T();
+
+		curr_size--;
+
+		if(curr_size < curr_capacity/2 && curr_capacity > 16){
+			resize(curr_capacity / 2);
+		}
+
+		return iterator(&this->data[ind], this);
+	}
 	/**
 	 * adds an element to the end.
 	 */
