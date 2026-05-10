@@ -149,7 +149,7 @@ public:
 		this->data = static_cast<T*>(operator new(curr_capacity * sizeof(T)));
 
 		for(int i = 0 ; i < curr_size ; i++){
-			new (this->data + i) T(other->data[i]);
+			new (this->data + i) T(other.data[i]);
 		}
 	}
 	/**
@@ -183,7 +183,7 @@ public:
 		this->data = static_cast<T*>(operator new(curr_capacity* sizeof(T)));
 
 		for(int i = 0 ; i < curr_size ; i++){
-			new (this->data + i) T(other->data[i]);
+			new (this->data + i) T(other.data[i]);
 		}
 	}
 	/**
@@ -314,7 +314,7 @@ public:
 	void push_back(const T &value) {
 		/* 发现已经满了 */
 		if(curr_size == curr_capacity){
-			int new_capacity = max(1,2*curr_capacity);
+			int new_capacity = std::max(1,2*curr_capacity);
 			resize(new_capacity);
 		}
 		/* 扩容完成 */
@@ -329,7 +329,6 @@ public:
 	void pop_back() {
 		if(curr_size == 0) throw container_is_empty();
 		else{
-			T return_val = this->data[curr_size-1];
 			/* 显式析构 */
 			(data+curr_size-1)->~T();
 			curr_size--;
@@ -337,7 +336,6 @@ public:
 			if(curr_size < curr_capacity/2 && curr_capacity > 16){
 				resize(curr_capacity / 2);
 			}
-			return return_val;
 		}
 	}
 

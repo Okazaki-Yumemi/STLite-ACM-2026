@@ -65,6 +65,12 @@ data = static_cast<T*>(operator new(capacity * sizeof(T)));
 ```
 这里的 operator new 返回一个 void* 指针，指向一块足够大的内存来存储 capacity 个 T 对象。我们使用 static_cast 将这个 void* 指针转换为 T* 指针，这样我们就可以通过 data 来访问这块内存，并在上面构造 T 对象。
 
+iterator 的讲解:
+在我们的 Vector 实现中，iterator 是一个嵌套类，提供了对 Vector 内部元素的访问和遍历功能。iterator 类通常包含一个指向 Vector 内部数据的指针，以及一些重载的运算符来支持迭代器的基本操作，如解引用、递增、比较等。
+
+
+
+
 
 ## 实现过程中，我犯的错误
 ### 深拷贝的纠错
@@ -76,7 +82,7 @@ data = static_cast<T*>(operator new(capacity * sizeof(T)));
 		this->data = static_cast<T*>(operator new(capacity * sizeof(T)));
 
 		for(int i = 0 ; i < size ; i++){
-			this->data[i] = other->data[i];
+			this->data[i] = other.data[i];
 		}
 ```
 这里的深拷贝其实是浅拷贝，因为我们只是复制了指针地址，而没有复制指针指向的内容。正确的深拷贝应该是为每个元素调用复制构造函数，或者使用 placement new 来构造新的对象。
@@ -84,7 +90,7 @@ data = static_cast<T*>(operator new(capacity * sizeof(T)));
 /* 正确的深拷贝 */
 this->data = static_cast<T*>(operator new(capacity * sizeof(T)));
 for(int i = 0 ; i < size ; i++){
-    new (this->data + i) T(other->data[i]);
+    new (this->data + i) T(other.data[i]);
 }
 ```
 这样我们就为每个元素创建了一个新的对象，并且调用了复制构造函数来复制内容。
@@ -112,3 +118,5 @@ data怎么定义呢？ 这个没有犯错，还好。
 ```cpp
 T* data; // 指向 raw memory 的指针
 ```
+
+
