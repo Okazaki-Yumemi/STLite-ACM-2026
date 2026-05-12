@@ -136,21 +136,28 @@ class priority_queue {
         /*开始遍历根链表*/
         Node* ptr = root_head->sibling;
         while(ptr != nullptr){
+            /*先存储下一个*/
+            Node* next_node = ptr->sibling;
+            ptr->sibling = nullptr;
             /*不需要合并*/
             if(degree[ptr->degree] == nullptr){
                 /*放进去*/
+                /*这里要注意，我们桶里面放的节点就都是孤儿节点了，没有sibling*/
                 degree[ptr->degree] = ptr;
             }else{
-                /* 拿出来 */
-                Node* target = degree[ptr->degree];
-                degree[ptr->degree] = nullptr;
-                /*在这个地方调用一个新的函数，返回一个新的节点，让ptr直接等于新的节点，继续检查*/
-                ptr = merge_singe(ptr,target);
-                /*如果发生了合并，不需要走到下一个，仍然检查自己*/
-                continue;
+                /*这个地方涉及到多次合并，我们直接用循环*/
+                while(degree[ptr->degree] != nullptr){
+                    /*拿出来*/
+                    Node* target = degree[ptr->degree];
+                    /*合并*/
+                    ptr = merge_single(ptr,target);
+                    /*这个地方要入桶吗? 在while循环之后入桶*/
+                    /*流程就是发现一个地方不是空的，就一直循环，直到找到空桶*/
+                }
+                degree[ptr->degree] = ptr;
             }
             /*前进一格*/
-            ptr = ptr->next;
+            ptr = next_node;
         }
         /* 重构 */
         ptr = root_head;
@@ -169,13 +176,22 @@ class priority_queue {
         最后返回一个新的src。
         不能改变src的指向
         */
-        target->sibling = src->child;
-        src -> child = target;
-        return src;
+       /*src和target的sibling都是孤儿*/
+        if(cmp(src,target)){
+            /*如果target更大*/
+            src->sibling = target->child;
+            target->child = src;
+            target->degree++;
+            return target;
+       }else{
+            /*src大*/
+            target->sibling = src->child;
+            src->child = target;
+            src->degree++;
+            return src;
+       }
+        
     }
-
-
-
 };
 
 }  // namespace sjtu
