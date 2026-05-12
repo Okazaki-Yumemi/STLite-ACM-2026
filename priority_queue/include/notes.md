@@ -216,4 +216,29 @@ clear用后续递归删除所有节点，从每个root触发，递归删除它�
 大概就是先 delete ptr->child 再 delete ptr->sibling 最后 delete ptr
 ```
 
+## 异常处理说明
 
+```
+惰性二项堆把 push / merge 设计得很轻：
+- push 只加一个 B0；
+- merge 只拼接根链表；
+- 都不调用 consolidate。
+
+原因：
+1. 结构上允许延迟整理；
+2. 复杂度更好；
+3. 异常安全更容易，因为避开了大量 cmp。
+
+consolidate 是高风险函数：
+- 需要辅助数组；
+- 需要大量 cmp；
+- 会修改根表和树结构。
+
+因此它不应出现在 merge 中。
+它主要服务于 pop，因为删除最大根后必须整理森林并重建 max_root。
+
+真正困难的是：
+如果 pop 中 consolidate 的 cmp 抛异常，
+如何让 pop 恢复到调用前状态。
+这需要后续专门设计，不能靠“之前 cmp 没报错”来假设后续不会报错。
+```
