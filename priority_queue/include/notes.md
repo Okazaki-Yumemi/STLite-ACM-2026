@@ -139,6 +139,53 @@ class Compare = std::less<T>
 
 然后更新 max_root，如果 new_node 的优先级更高，就更新 max_root = new_node;
 
+休正一下，这个地方要对函数做异常捕获处理问题
+先前代码
+```cpp
+    void push(const T& val){
+        Node* new_node = new Node(val);
+        
+        /* 头插入 */
+        new_node->sibling = root_head ->sibling;
+        root_head ->sibling = new_node;
+
+        /* 更新指针 */
+        if(max_root == nullptr) max_root = new_node;
+        else if (cmp(max_root->value , new_node->value) == true) max_root = new_node;
+        
+        /* 更新大小 */
+        current_size++;
+
+    };
+```
+其中，报错点有两个:
+1. new Node(val) 可能抛出异常
+    这个不用担心，因为如果 new Node(val) 抛出异常，说明内存分配失败了，这时候 push 操作根本没有成功，优先队列的状态也没有改变，所以不需要回滚。
+2. cmp(max_root->value , new_node->value) 可能抛出异常
+    这个需要注意，如果 cmp 抛出异常，说明比较器在比较 max_root->value 和 new_node->value 时发生了错误，这时候我们需要回滚到 push 前的状态。
+    回滚的操作就是把新节点从根链表中摘掉，并且如果 new_node 是 max_root，我们还需要恢复 max_root 的值。
+
+我们直接把判断提前
+```cpp
+    /** Adds one element to the queue. */
+    void push(const T& val){
+        Node* new_node = new Node(val);
+        bool greater_judge = cmp(max_root->value , new_node->value); 
+        /* 头插入 */
+        new_node->sibling = root_head ->sibling;
+        root_head ->sibling = new_node;
+
+        /* 更新指针 */
+        if(max_root == nullptr) max_root = new_node;
+        else if (greater_judge == true) max_root = new_node;
+        
+        /* 更新大小 */
+        current_size++;
+
+    };
+```
+这样如果 cmp 抛出异常，优先队列的状态没有改变，不需要回滚。
+
 ### size
 返回current_size
 
@@ -162,4 +209,11 @@ Node** degree = new Node*[MAX_DEGREE](); // 初始化为 nullptr
 
 #### 犯了一点错
 consolidate的时候degree的参数写成 ptr->value了，应该是 ptr->degree.
+
+### clear
+clear用后续递归删除所有节点，从每个root触发，递归删除它的子树。
+```cpp
+大概就是先 delete ptr->child 再 delete ptr->sibling 最后 delete ptr
+```
+
 
