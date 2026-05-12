@@ -162,49 +162,34 @@ class priority_queue {
     void pop(){
         /*先用复制写法来看看*/
         if(this->current_size == 0) throw container_is_empty();
-
-        priority_queue* backup = new priority_queue(*this);
-
-        /*深拷贝备份了，虽然这样时间复杂度肯定过不了，不过先试试*/
-        try
-        {
-            if(max_root == root_head){
-                /*root_head置空*/
-                root_head = max_root->sibling;
-            }else{
-                /*定位到前驱*/
-                Node* ptr = root_head;
-                while(ptr->sibling != max_root){
-                    ptr = ptr->sibling;
-                }
-                ptr->sibling = max_root->sibling;
+        if(max_root == root_head){
+            /*root_head置空*/
+            root_head = max_root->sibling;
+        }else{
+            /*定位到前驱*/
+            Node* ptr = root_head;
+            while(ptr->sibling != max_root){
+                ptr = ptr->sibling;
             }
+            ptr->sibling = max_root->sibling;
+        }
 
-            /*加入max_root的孩子*/
-            if(max_root->child != nullptr){
-                Node* child_head = max_root->child;
-                Node* child_end = max_root->child;
-                while(child_end->sibling != nullptr){
-                    child_end = child_end->sibling;
-                }
-                child_end->sibling = root_head;
-                root_head = child_head;
+        /*加入max_root的孩子*/
+        if(max_root->child != nullptr){
+            Node* child_head = max_root->child;
+            Node* child_end = max_root->child;
+            while(child_end->sibling != nullptr){
+                child_end = child_end->sibling;
             }
-            max_root->child = nullptr;
-            max_root->sibling = nullptr;
-            delete max_root;
-            current_size--;
+            child_end->sibling = root_head;
+            root_head = child_head;
+        }
+        max_root->child = nullptr;
+        max_root->sibling = nullptr;
+        delete max_root;
+        current_size--;
 
-            consolidate();
-            delete backup;
-        }
-        catch(const std::exception& e)
-        {
-            /*出问题了，还回去*/
-            *this = *backup;
-            delete backup;
-            throw;
-        }
+        consolidate();        
     };
 
     /** Returns the number of elements in the queue. */
