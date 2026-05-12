@@ -242,3 +242,84 @@ consolidate 是高风险函数：
 如何让 pop 恢复到调用前状态。
 这需要后续专门设计，不能靠“之前 cmp 没报错”来假设后续不会报错。
 ```
+
+
+# 超级Debug环节我草泥马的
+## heap corruption 头号元凶 ```delete &value```
+delete ptr的时候会自动调用T value的析构函数，如果T的析构函数里又调用了 delete this->value，就会导致 double free，造成 heap corruption。
+
+## Node复制构造没有初始化空指针
+现在
+```cpp
+Node(const Node& other):value(other.value){
+    this->degree = other.degree;
+    if(other.child != NULL){
+        this->child = new Node(*other.child);
+    }
+    if(other.sibling != NULL){
+        this->sibling = new Node(*other.sibling);
+    }
+}
+```
+如果 other.child 是 nullptr，那么 this->child 就没有被初始化，可能是一个野指针，后续访问 this->child 就会导致 heap corruption。
+解决方法是在构造函数里初始化 child 和 sibling 为 nullptr。
+```cpp
+Node(const Node& other):value(other.value), child(nullptr), sibling(nullptr){
+    this->degree = other.degree;
+    if(other.child != NULL){
+        this->child = new Node(*other.child);
+    }
+    if(other.sibling != NULL){
+        this->sibling = new Node(*other.sibling);
+    }
+}
+```
+
+## priority_queue的析构函数只删了第一个根
+```cpp
+~priority_queue(){
+        delete_node(root_head);
+        max_root = nullptr;
+        current_size = 0;
+    };
+```
+改成我们写好的delete函数就好了
+
+## operator= 无限递归 + use-after-destruction
+后面再改
+```cpp
+priority_queue& operator=(const priority_queue& other){
+        if(this == &other) return *this; // 自赋值检查
+        this->~priority_queue(); // 销毁当前对象，释放资源
+        new (this) priority_queue(other); // 使用 placement new 进行复制构造
+        return *this;
+    }
+```
+
+## push插入逻辑有问题，改了一下，因为我们没有办法做链表哨兵节点，妈的，没有默认构造函数
+
+## merge() 的bug
+
+
+```cpp
+Node* ptr = root_head;
+while(ptr != nullptr){
+    ptr = ptr->sibling;
+}
+ptr->sibling = other.root_head;
+```
+
+### ptr循环结束之后是 nullptr，所以 ptr->sibling 就会导致 segmentation fault。
+改成
+```cpp
+Node* ptr = root_head;
+if(ptr == nullptr){
+    root_head = other.root_head;
+}else{
+    while(ptr->sibling != nullptr){
+        ptr = ptr->sibling;
+    }
+    ptr->sibling = other.root_head;
+}
+```
+### 空堆接管other后，没有清空other

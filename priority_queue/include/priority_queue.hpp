@@ -43,7 +43,7 @@ class priority_queue {
             sibling = nullptr;
         };
 
-        Node(const Node& other):value(other.value){
+        Node(const Node& other):value(other.value), child(nullptr), sibling(nullptr){
             this->degree = other.degree;
             /*拷贝构造函数得递归调用？*/
             if(other.child != NULL){
@@ -55,7 +55,6 @@ class priority_queue {
         }
 
         ~Node(){
-            delete &value;
             degree = 0;
             child = nullptr;
             sibling = nullptr;
@@ -89,33 +88,39 @@ class priority_queue {
         this->current_size =  other.current_size;
         this->cmp = other.cmp;
         /*Node的构造函数已经可以自己出来一个网络，因此我们拷贝头节点就可以了*/
+        if(other.root_head == nullptr){
+            this->root_head = nullptr;
+            this->max_root = nullptr;
+            current_size = 0;
+            return;
+        }
+        /*这个地方如果 * nullptr会爆炸，得拦截*/
         this->root_head = new Node(*other.root_head);
         /*max root 再遍历一次找吧*/
         Node* ptr = root_head;
         this->max_root = nullptr;
-        while(ptr->sibling != nullptr){
-            ptr = ptr->sibling;
+        while(ptr != nullptr){
             if(this->max_root == nullptr) max_root = ptr;
             else{
                 /*a < b*/
                 max_root = cmp(ptr->value , max_root->value)? max_root:ptr; 
             }
+            ptr = ptr->sibling;
         }
     };
     
     ~priority_queue(){
-        delete root_head;
+        Node::delete_node(root_head);
         max_root = nullptr;
         current_size = 0;
     };
     
     /*深拷贝赋值函数*/
     priority_queue& operator=(const priority_queue& other){
-        if(this == &other) return *this;
-        priority_queue* tmp = new priority_queue(other);
-        this->~priority_queue();
-        *this = *tmp;
-        return *this ;
+        if(this == &other) return *this; // 自赋值检查
+        this->~priority_queue(); // 销毁当前对象，释放资源
+        new (this) priority_queue(other); // 使用 placement new 进行复制构造
+        return *this;
     };
 
     /** Adds one element to the queue. */
@@ -126,9 +131,11 @@ class priority_queue {
         Node* new_node = new Node(val);
          
         /* 头插入 */
-        new_node->sibling = root_head ->sibling;
-        root_head ->sibling = new_node;
-
+        if(root_head == nullptr) root_head = new_node;
+        else{
+            new_node->sibling = root_head;
+            root_head = new_node;
+        }
         /* 更新指针 */
         if (greater_judge == true) max_root = new_node;
         
@@ -161,17 +168,41 @@ class priority_queue {
         /*深拷贝备份了，虽然这样时间复杂度肯定过不了，不过先试试*/
         try
         {
-            /*把max删掉，然后size--,对接下来用consolidate*/
-            Node* del =  max_root;
-            max_root = max_root->sibling;
-            delete del;
-            this->consolidate(); /* consolidate帮助我们管理最大值 */
-            this->current_size--;
+            if(max_root == root_head){
+                /*root_head置空*/
+                root_head = max_root->sibling;
+            }else{
+                /*定位到前驱*/
+                Node* ptr = root_head;
+                while(ptr->sibling != max_root){
+                    ptr = ptr->sibling;
+                }
+                ptr->sibling = max_root->sibling;
+            }
+
+            /*加入max_root的孩子*/
+            if(max_root->child != nullptr){
+                Node* child_head = max_root->child;
+                Node* child_end = max_root->child;
+                while(child_end->sibling != nullptr){
+                    child_end = child_end->sibling;
+                }
+                child_end->sibling = root_head;
+                root_head = child_head;
+            }
+            max_root->child = nullptr;
+            max_root->sibling = nullptr;
+            delete max_root;
+            current_size--;
+
+            consolidate();
+            delete backup;
         }
         catch(const std::exception& e)
         {
             /*出问题了，还回去*/
             *this = *backup;
+            delete backup;
             throw;
         }
     };
@@ -191,7 +222,7 @@ class priority_queue {
         /*这个地方直接在 Node类内部写好，不写在外面了，方便指针调用*/
         /*有提到过我们要保存“状态”，那我们拷贝一份？*/
         /*clear不用传递异常，从根节点开始递归删就行了*/
-        Node::delete_node(root_head->sibling);
+        Node::delete_node(root_head);
         this->current_size = 0;
         this->max_root = nullptr;
         this->root_head = nullptr;
@@ -211,6 +242,9 @@ class priority_queue {
             this->root_head = other.root_head;
             this->current_size = other.current_size;
             this->max_root = other.max_root;
+            other.root_head = nullptr;
+            other.current_size = 0;
+            other.max_root = nullptr;
             return;
         }
         /*惰性二项堆的merge只拼根链表*/
@@ -218,19 +252,21 @@ class priority_queue {
         /*用false表示自己的小、true表示用对方的吧*/
         bool max_judge = false;
         /*自己的为空、 或者自己的不空、对方的也不空，自己小，就用对方的，如果俩都空也用对方的*/
-        if(this->max_root == nullptr || (other.max_root != nullptr && cmp(this->max_root->value , other.max_root->value))) max_judge = false;
-        else max_judge = true;
-
+        if(this->max_root == nullptr || (other.max_root != nullptr && cmp(this->max_root->value , other.max_root->value))) max_judge = true;
         /*把对方的加入链表*/
         Node* ptr = root_head;
-        while(ptr->sibling != nullptr){
-            ptr = ptr->sibling;
+        if(ptr == nullptr){
+            root_head = other.root_head;
+        }else{
+            while(ptr->sibling != nullptr){
+                ptr = ptr->sibling;
+            }
+            /*走到尾巴*/
+            /*把对方的下一个直接挂上去*/
+            ptr->sibling = other.root_head;
         }
-        /*走到尾巴*/
-        /*把对方的下一个直接挂上去*/
-        ptr->sibling = other.root_head->sibling;
         /*防止误删新的*/
-        other.root_head->sibling = nullptr;
+        other.root_head = nullptr;
         /*接管*/
         this->max_root = max_judge? other.max_root:this->max_root;
         this->current_size += other.size();
@@ -241,11 +277,15 @@ class priority_queue {
     /*把 B 挂在 A 下面*/
     void consolidate(){
         /*懒得算了，直接构造一个巨大无比的哈希表，用这个来撞*/
+        if(root_head == nullptr || current_size == 0){
+            max_root = nullptr ;
+            return;
+        }
         int max_size = log2(current_size)+2;
         Node** degree = new Node*[max_size]();
 
         /*开始遍历根链表*/
-        Node* ptr = root_head->sibling;
+        Node* ptr = root_head;
         while(ptr != nullptr){
             /*先存储下一个*/
             Node* next_node = ptr->sibling;
@@ -260,6 +300,7 @@ class priority_queue {
                 while(degree[ptr->degree] != nullptr){
                     /*拿出来*/
                     Node* target = degree[ptr->degree];
+                    degree[ptr->degree] = nullptr;
                     /*合并*/
                     ptr = merge_single(ptr,target);
                     /*这个地方要入桶吗? 在while循环之后入桶*/
@@ -271,17 +312,24 @@ class priority_queue {
             ptr = next_node;
         }
         /* 重构 */
-        ptr = root_head;
+        root_head = nullptr;
+        Node* tail = nullptr;
         /*最大值也得改了*/
         this->max_root = nullptr;
         for(int i = 0 ; i < max_size ; i++){
             if(degree[i] != nullptr){
                 if(this->max_root == nullptr || cmp(this->max_root->value , degree[i]->value) ) max_root = degree[i];
-                ptr->sibling = degree[i];
-                ptr = ptr->sibling;
+                if(root_head == nullptr){
+                    root_head = degree[i];
+                    tail = degree[i];
+                    continue;
+                }
+                tail->sibling = degree[i];
+                tail = tail->sibling;
             }
         }
-
+        if(tail != nullptr) tail->sibling = nullptr;
+        delete[] degree;
     };
 
     Node* merge_single(Node* src , Node* target){
