@@ -323,3 +323,359 @@ if(ptr == nullptr){
 }
 ```
 ### 空堆接管other后，没有清空other
+
+
+
+
+# 复盘总结
+## 二项树基础
+节点和Degree以2的幂次增长，合并同阶树就像二进制加法一样，容易理解。
+## 数据结构设计
+Node
+```cpp
+T value;
+Node* child; // 指向第一个子节点
+Node* sibling; // 指向下一个兄弟节点
+int degree; // 以该节点为根的树的度数
+```
+根节点之间通过 sibling 链表连接，孩子节点也通过 sibling 链表连接，degree 记录以该节点为根的树的度数。
+
+PriorityQueue
+```cpp
+Node* root_head; // 根链表头指针
+Node* max_root; // 指向当前堆顶的指针
+size_t current_size; // 当前元素数量
+Compare cmp; // 比较器
+```
+维护根链表，堆顶指针，元素数量和比较器。
+
+## Node相关函数
+```cpp
+Node(const T& val):value(val), child(nullptr), sibling(nullptr), degree(0) {}
+Node(const Node& other):value(other.value), child(nullptr), sibling(nullptr), degree(other.degree) {
+    if(other.child != nullptr){
+        this->child = new Node(*other.child);
+    }
+    if(other.sibling != nullptr){
+        this->sibling = new Node(*other.sibling);
+    }
+}
+~Node() {
+    delete child; // 递归删除子树
+    delete sibling; // 递归删除兄弟节点
+}
+
+static delete_node(Node* node) {
+    if(node == nullptr) return;
+    delete_node(node->child); // 递归删除子树
+    delete_node(node->sibling); // 递归删除兄弟节点
+    delete node; // 删除当前节点
+}
+```
+Node的构造函数和复制构造函数，确保正确初始化指针，避免野
+指针导致的错误。
+
+## proiority_queue 构造和资源管理
+```cpp
+priority_queue(): root_head(nullptr), max_root(nullptr), current_size(0) {}
+priority_queue(const priority_queue& other): root_head(nullptr), max_root(nullptr), current_size(0), cmp(other.cmp) {
+    if(other.root_head != nullptr){
+        root_head = new Node(*other.root_head);
+        // 复制构造会递归复制整个树结构
+        // 需要更新 max_root 指针
+        Node* ptr = root_head;
+        while(ptr != nullptr){
+            if(max_root == nullptr || cmp(max_root->value, ptr->value)){
+                max_root = ptr;
+            }
+            ptr = ptr->sibling;
+        }
+    }
+}
+~priority_queue() {
+    delete_node(root_head); // 递归删除所有节点
+    root_head = nullptr;
+    max_root = nullptr;
+    current_size = 0;
+}
+
+proiority_queue& operator=(const priority_queue& other) {
+    if(this == &other) return *this; // 自赋值检查
+    this->~priority_queue(); // 销毁当前对象，释放资源
+    new (this) priority_queue(other); // 使用 placement new 进行复制构造
+    return *this;
+}
+```
+
+题目相关函数
+# push
+```cpp
+void push(const T& val){
+    Node* new_node = new Node(val);
+    bool greater_judge = cmp(max_root->value , new_node->value); 
+    /* 头插入 */
+    new_node->sibling = root_head;
+    root_head = new_node;
+
+    /* 更新指针 */
+    if(max_root == nullptr) max_root = new_node;
+    else if (greater_judge == true) max_root = new_node;
+    
+    /* 更新大小 */
+    current_size++;
+};
+```
+push操作创建一个新的单节点树，插入到根链表头部，并更新 max_root 和 current_size。
+在这里我们提前调用 cmp 来判断是否需要更新 max_root，这样如果 cmp 抛出异常，优先队列的状态没有改变，不需要回滚。
+
+# top
+```cpp
+const T& top() const {
+    if(empty()) throw std::runtime_error("Priority queue is empty");
+    return max_root->value;
+}
+```
+
+# merge
+```cpp
+void merge(priority_queue& other){
+        if(this == &other) return; /*自合并检查*/
+        if(other.size() == 0) return;
+        if(this->size() == 0){ /*空堆直接接管*/
+            this->root_head = other.root_head;
+            this->current_size = other.current_size;
+            this->max_root = other.max_root;
+            other.root_head = nullptr;
+            other.current_size = 0;
+            other.max_root = nullptr;
+            return;
+        }
+        /*惰性二项堆的merge只拼根链表*/
+        /*先判断 新的 max是谁*/
+        /*用false表示自己的小、true表示用对方的吧*/
+        bool max_judge = false;
+        /*自己的为空、 或者自己的不空、对方的也不空，自己小，就用对方的，如果俩都空也用对方的*/
+        if(this->max_root == nullptr || (other.max_root != nullptr && cmp(this->max_root->value , other.max_root->value))) max_judge = true;
+        /*把对方的加入链表*/
+        Node* ptr = root_head;
+        if(ptr == nullptr){
+            root_head = other.root_head;
+        }else{
+            while(ptr->sibling != nullptr){
+                ptr = ptr->sibling;
+            }
+            /*走到尾巴*/
+            /*把对方的下一个直接挂上去*/
+            ptr->sibling = other.root_head;
+        }
+        /*防止误删新的*/
+        other.root_head = nullptr;
+        /*接管*/
+        this->max_root = max_judge? other.max_root:this->max_root;
+        this->current_size += other.size();
+        other.clear();
+        return;
+    };
+```
+merge操作将另一个堆的根链表拼接到当前堆的根链表末尾，并更新 max_root 和 current_size。最后清空 other 堆的状态。
+
+# pop
+```cpp
+void pop(){
+        if(this->current_size == 0) throw container_is_empty();
+
+        /*
+         * pop 的难点在于：
+         * 原来的写法会先摘根、接 children，再在 consolidate() 中调用 cmp。
+         * 如果 cmp 在 consolidate 中抛异常，堆已经被改坏，无法满足强异常安全。
+         *
+         * 这里改成“两阶段提交”：
+         * 1. planning 阶段：只读取真实节点，不改任何指针/degree；
+         *    在虚拟 degree 桶中模拟 consolidate，并完成所有可能抛异常的 cmp。
+         * 2. commit 阶段：planning 成功后，不再调用 cmp，
+         *    按记录好的 link 计划真正改 child/sibling/degree，重建根表。
+         *
+         * 若 planning 阶段 cmp 抛异常，真实堆完全未修改，异常可直接原样传出。
+         */
+
+        struct LinkPlan {
+            Node* parent;
+            Node* child;
+        };
+
+        Node* old_max = max_root;
+        const int max_size = static_cast<int>(log2(current_size)) + 3;
+        Node** degree_bucket = nullptr;
+        LinkPlan* link_plan = nullptr;
+        int link_count = 0;
+        Node* planned_max = nullptr;
+
+        try {
+            degree_bucket = new Node*[max_size]();
+            /* 合并次数不会超过参与 consolidate 的树数，current_size 是安全上界。 */
+            link_plan = new LinkPlan[current_size];
+
+            /*
+             * 把一棵“虚拟根树”塞进 degree 桶。
+             * cur_degree 是虚拟 degree：planning 阶段不修改 Node::degree。
+             */
+
+            /* 先模拟 old_max 的孩子。真实 pop 中 children 会被接到根链表前面。 */
+            for(Node* candidate = old_max->child; candidate != nullptr; candidate = candidate->sibling){
+                Node* cur = candidate;
+                int cur_degree = cur->degree;
+
+                while(degree_bucket[cur_degree] != nullptr){
+                    Node* target = degree_bucket[cur_degree];
+                    degree_bucket[cur_degree] = nullptr;
+
+                    if(cmp(cur->value, target->value)){
+                        /* target 更大：cur 将来挂到 target 下面。 */
+                        link_plan[link_count++] = LinkPlan{target, cur};
+                        cur = target;
+                    }else{
+                        /* cur 更大或相等：target 将来挂到 cur 下面。 */
+                        link_plan[link_count++] = LinkPlan{cur, target};
+                    }
+                    ++cur_degree;
+                }
+                degree_bucket[cur_degree] = cur;
+            }
+
+            /* 再模拟原根链表中除 old_max 以外的根。 */
+            for(Node* candidate = root_head; candidate != nullptr; candidate = candidate->sibling){
+                if(candidate == old_max) continue;
+
+                Node* cur = candidate;
+                int cur_degree = cur->degree;
+
+                while(degree_bucket[cur_degree] != nullptr){
+                    Node* target = degree_bucket[cur_degree];
+                    degree_bucket[cur_degree] = nullptr;
+
+                    if(cmp(cur->value, target->value)){
+                        link_plan[link_count++] = LinkPlan{target, cur};
+                        cur = target;
+                    }else{
+                        link_plan[link_count++] = LinkPlan{cur, target};
+                    }
+                    ++cur_degree;
+                }
+                degree_bucket[cur_degree] = cur;
+            }
+
+            /* planning 阶段顺便算出 pop 后的新 max_root。 */
+            for(int i = 0 ; i < max_size ; ++i){
+                if(degree_bucket[i] != nullptr){
+                    if(planned_max == nullptr || cmp(planned_max->value, degree_bucket[i]->value)){
+                        planned_max = degree_bucket[i];
+                    }
+                }
+            }
+        }
+        catch(...){
+            delete[] degree_bucket;
+            delete[] link_plan;
+            throw;
+        }
+
+        /* -------------------- commit：从这里开始不再调用 cmp -------------------- */
+
+        /* 先断开原根链表中的 sibling 关系。 */
+        for(Node* ptr = root_head; ptr != nullptr; ){
+            Node* next = ptr->sibling;
+            ptr->sibling = nullptr;
+            ptr = next;
+        }
+
+        /* 再断开 old_max 的孩子链表；这些孩子将作为独立树参与重建。 */
+        for(Node* ptr = old_max->child; ptr != nullptr; ){
+            Node* next = ptr->sibling;
+            ptr->sibling = nullptr;
+            ptr = next;
+        }
+
+        /* 按 planning 阶段记录的顺序真正执行 link。 */
+        for(int i = 0 ; i < link_count ; ++i){
+            Node* parent = link_plan[i].parent;
+            Node* child = link_plan[i].child;
+            child->sibling = parent->child;
+            parent->child = child;
+            parent->degree++;
+        }
+
+        /* 用最终 degree 桶重建根链表。 */
+        root_head = nullptr;
+        Node* tail = nullptr;
+        for(int i = 0 ; i < max_size ; ++i){
+            if(degree_bucket[i] != nullptr){
+                if(root_head == nullptr){
+                    root_head = degree_bucket[i];
+                    tail = degree_bucket[i];
+                }else{
+                    tail->sibling = degree_bucket[i];
+                    tail = degree_bucket[i];
+                }
+            }
+        }
+        if(tail != nullptr) tail->sibling = nullptr;
+
+        max_root = planned_max;
+        old_max->child = nullptr;
+        old_max->sibling = nullptr;
+        delete old_max;
+        --current_size;
+
+        delete[] degree_bucket;
+        delete[] link_plan;
+    };
+```
+
+## 一开始的方法
+尝试整堆备份，但是导致pop复杂太高
+
+## 最终方案 Planning + Commit
+### 阶段1 Planning
+只读
+提前模拟pop后的consolidate过程，记录所有可能抛异常的 cmp 结果，规划好 link 计划，但不修改任何指针/degree。
+如果 cmp 抛异常，堆完全未修改，异常可直接原样传出
+
+做什么？
+取出 old_max 的孩子们； 根链表里面除了old_max的所有根
+用虚拟degree桶模拟合并，每次调用cmp
+记录每次合并的 link 计划（parent/child），但不修改任何指针/degree
+规划出 pop 后的新 max_root
+
+### 阶段2 Commit
+1. 断开旧根链表；
+2. 断开 old_max 的孩子链；
+3. 按 link_plan 执行真实合并；
+4. 根据 degree_bucket 重建根链表；
+5. 更新 max_root；
+6. 删除 old_max；
+7. current_size--。
+
+# size
+```cpp
+return current_size;
+```
+
+# empty
+```cpp
+return current_size == 0;
+```
+
+# clear
+```cpp
+void clear(){
+    Node::delete_node(root_head);
+    root_head = nullptr;
+    max_root = nullptr;
+    current_size = 0;
+};
+```
+
+# consolidate
+是一个过渡的函数，最后没有用
+# merge_single
+同上
