@@ -146,6 +146,10 @@ public:
 				this->owner = nullptr;
 				this->index = 0;
 			}
+			const_iterator(deque* parent , size_t pos){
+				this->owner = parent;
+				this->index = (ptrdiff_t) pos;
+			}
 			const_iterator(const iterator &other) {
 				// TODO
 				this->owner = other.owner;
@@ -426,13 +430,32 @@ public:
 	/**
 	 * returns an iterator to the beginning.
 	 */
-	iterator begin() {}
-	const_iterator cbegin() const {}
+	iterator begin() {
+		iterator it;
+		it.owner = this;
+		it.index = 0;
+		return it;
+	}
+	const_iterator cbegin() const {
+		const_iterator it;
+		it.owner = this;
+		it.index = 0;
+		return it;
+	}
 	/**
 	 * returns an iterator to the end.
 	 */
-	iterator end() {}
-	const_iterator cend() const {}
+	iterator end() {
+		iterator it;
+		it.owner = this;
+		it.index = this->current_size - 1;
+		return it;
+	}
+	const_iterator cend() const {
+		const_iterator it;
+		it.owner = this;
+		it.index = this->current_size - 1;
+	}
 	/**
 	 * checks whether the container is empty.
 	 */
@@ -467,14 +490,67 @@ public:
 	 * returns an iterator pointing to the inserted value
 	 *     throw if the iterator is invalid or it point to a wrong place.
 	 */
-	iterator insert(iterator pos, const T &value) {}
+	iterator insert(iterator pos, const T &value) {
+		if(pos.owner != this || pos.index > current_size) throw invalid_iterator();
+		size_t index = pos.index;
+		/*检查需不需要扩容*/
+
+		/*插入之后，最后一个元素的位置*/
+		size_t block_index = first_block + (current_size + first_offset)/(this->BLOCK_CAPACITY);
+		size_t new_offset = current_size + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
+
+		if(block_index == deque_capacity){
+			/*扩容*/
+			this->resize(this->deque_capacity*2);
+		}
+		/*从current_size 到 index位置，从最后移动 */
+		if(index == current_size){
+			/*如果是最后一个，就不用管了*/
+			block_index = first_block + (current_size + first_offset)/(this->BLOCK_CAPACITY);
+			new_offset = current_size + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
+			new (this->block_lists[block_index].data[new_offset]) T(value);
+			this->current_size++;
+			return iterator(this,index);
+		}
+		/*开始从最后一个移动*/
+		for(int i = this->current_size ; i > index ; i--){
+			block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
+			new_offset = i + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
+			if(i != current_size) (this->block_lists[block_index].data[new_offset]) ->~T();
+			size_t front_one_block = first_block + (i - 1 + first_offset)/(this->BLOCK_CAPACITY);
+			size_t front_one_offset = i - 1 + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
+			new (this->block_lists[block_index].data[new_offset]) T(this->block_lists[front_one_block].data[front_one_offset]);
+		}
+		/*然后new新的*/
+		block_index = first_block + (index + first_offset)/(this->BLOCK_CAPACITY);
+		new_offset = index + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
+		(this->block_lists[block_index].data[new_offset])->~T();
+		new (this->block_lists[block_index].data[new_offset]) T(value);
+		this->current_size ++;
+		return iterator(this,index);
+	}
 	/**
 	 * removes specified element at pos.
 	 * removes the element at pos.
 	 * returns an iterator pointing to the following element, if pos pointing to the last element, end() will be returned.
 	 * throw if the container is empty, the iterator is invalid or it points to a wrong place.
 	 */
-	iterator erase(iterator pos) {}
+	iterator erase(iterator pos) {
+		if(pos.owner != this || pos.index >= this->current_size) throw invalid_iterator();
+		size_t index = pos.index;
+		for(size_t i = index ; i < current_size - 1 ; i++){
+			size_t this_block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
+			size_t this_new_offset = i + first_offset - (this_block_index - first_block)*this->BLOCK_CAPACITY;
+
+			size_t next_block_index =first_block + (i + 1 + first_offset)/(this->BLOCK_CAPACITY);
+			size_t next_new_offset = i + 1 + first_offset - (this_block_index - first_block)*this->BLOCK_CAPACITY;
+
+			(this->block_lists[this_block_index].data[this_new_offset]) ->~T();
+			new (this-block_lists[this_block_index].data[this_new_offset]) T(this->block_lists[next_block_index].data[next_new_offset]);
+		}
+		this->current_size --;
+		return iterator(this,index);
+	}
 	/**
 	 * adds an element to the end
 	 */
