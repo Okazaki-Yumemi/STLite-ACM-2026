@@ -30,19 +30,19 @@ public:
 			this->owner = nullptr;
 			this->index = 0;
 		}
-		iterator(deque* parent , size_t pos){
+		iterator(deque* parent , std::ptrdiff_t pos){
 			this->owner = parent;
-			this->index = (ptrdiff_t) pos;
+			this->index = pos;
 		}
 
 		iterator operator+(const int &n) const {
 			//TODO
-			iterator new_itr(this->owner,(size_t)this->index + (size_t) n);
+			iterator new_itr(this->owner,this->index +  n);
 			return new_itr;
 		}
 		iterator operator-(const int &n) const {
 			//TODO
-			iterator new_itr(this->owner,(size_t)this->index - (size_t) n);
+			iterator new_itr(this->owner,this->index -  n);
 			return new_itr;
 		}
 		// return th distance between two iterator,
@@ -54,13 +54,13 @@ public:
 		}
 		iterator operator+=(const int &n) {
 			//TODO
-			iterator new_itr(this->owner,(size_t)this->index + (size_t) n);
-			return new_itr;
+			this->index +=n;
+			return *this;
 		}
 		iterator operator-=(const int &n) {
 			//TODO
-			iterator new_itr(this->owner,(size_t)this->index - (size_t) n);
-			return new_itr;
+			this->index -=n;
+			return *this;
 		}
 		/**
 		 * TODO iter++
@@ -100,19 +100,19 @@ public:
 		 * TODO *it
 		 */
 		T& operator*() const {
-			deque parent = *(this->owner);
-			size_t block_index = parent.first_block + (this->index + first_offset)/(parent.BLOCK_CAPACITY);
-			size_t new_offset = this->index + parent.first_offset - (block_index - parent.first_block)*parent.BLOCK_CAPACITY;
-			return parent.block_lists[block_index].data[new_offset];
+			if(this->owner == nullptr || this->index < 0 || this->index >= this->owner->current_size) throw invalid_iterator();
+			size_t block_index = (*(this->owner)).first_block + (this->index + (*(this->owner)).first_offset)/((*(this->owner)).BLOCK_CAPACITY);
+			size_t new_offset = this->index + (*(this->owner)).first_offset - (block_index - (*(this->owner)).first_block)*(*(this->owner)).BLOCK_CAPACITY;
+			return (*(this->owner)).block_lists[block_index].data[new_offset];
 		}
 		/**
 		 * TODO it->field
 		 */
 		T* operator->() const noexcept {
-			deque parent = *(this->owner);
-			size_t block_index = parent.first_block + (this->index + first_offset)/(parent.BLOCK_CAPACITY);
-			size_t new_offset = this->index + parent.first_offset - (block_index - parent.first_block)*parent.BLOCK_CAPACITY;
-			return &(parent.block_lists[block_index].data[new_offset]);
+			if(this->owner == nullptr || this->index < 0 || this->index >= this->owner->current_size) throw invalid_iterator();
+			size_t block_index = (*(this->owner)).first_block + (this->index + (*(this->owner)).first_offset)/((*(this->owner)).BLOCK_CAPACITY);
+			size_t new_offset = this->index + (*(this->owner)).first_offset - (block_index - (*(this->owner)).first_block)*(*(this->owner)).BLOCK_CAPACITY;
+			return &((*(this->owner)).block_lists[block_index].data[new_offset]);
 		}
 		/**
 		 * a operator to check whether two iterators are same (pointing to the same memory).
@@ -139,16 +139,16 @@ public:
 		private:
 			// data members.
 		public:
-			deque* owner;
+			const deque* owner;
 			std::ptrdiff_t index;
 			const_iterator() {
 				// TODO
 				this->owner = nullptr;
 				this->index = 0;
 			}
-			const_iterator(deque* parent , size_t pos){
+			const_iterator(deque* parent , std::ptrdiff_t pos){
 				this->owner = parent;
-				this->index = (ptrdiff_t) pos;
+				this->index = pos;
 			}
 			const_iterator(const iterator &other) {
 				// TODO
@@ -157,12 +157,16 @@ public:
 			}
 			const_iterator operator+(const int &n) const {
 				//TODO
-				const_iterator new_itr(this->owner,(size_t)this->index + (size_t) n);
+				const_iterator new_itr;
+				new_itr.index = this->index + n;
+				new_itr.owner = this->owner;
 				return new_itr;
 			}
 			const_iterator operator-(const int &n) const {
 				//TODO
-				const_iterator new_itr(this->owner,(size_t)this->index - (size_t) n);
+				const_iterator new_itr;
+				new_itr.index = this->index - n;
+				new_itr.owner = this->owner;
 				return new_itr;
 			}
 			int operator-(const const_iterator &rhs) const {
@@ -172,13 +176,13 @@ public:
 			}
 			const_iterator operator+=(const int &n) {
 				//TODO
-				const_iterator new_itr(this->owner,(size_t)this->index + (size_t) n);
-				return new_itr;
+				this->index += n;
+				return *this;
 			}
 			const_iterator operator-=(const int &n) {
 				//TODO
-				const_iterator new_itr(this->owner,(size_t)this->index - (size_t) n);
-				return new_itr;
+				this->index -= n;
+				return *this;
 			}
 			const_iterator operator++(int) {
 				const_iterator old ;
@@ -203,16 +207,16 @@ public:
 				return *this;
 			}
 			const T& operator*() const {
-				deque parent = *(this->owner);
-				size_t block_index = parent.first_block + (this->index + first_offset)/(parent.BLOCK_CAPACITY);
-				size_t new_offset = this->index + parent.first_offset - (block_index - parent.first_block)*parent.BLOCK_CAPACITY;
-				return parent.block_lists[block_index].data[new_offset];
+				if(this->owner == nullptr || this->index < 0 || this->index >= this->owner->current_size) throw invalid_iterator();
+				size_t block_index = (*(this->owner)).first_block + (this->index + (*(this->owner)).first_offset)/((*(this->owner)).BLOCK_CAPACITY);
+				size_t new_offset = this->index + (*(this->owner)).first_offset - (block_index - (*(this->owner)).first_block)*(*(this->owner)).BLOCK_CAPACITY;
+				return (*(this->owner)).block_lists[block_index].data[new_offset];
 			}
 			const T* operator->() const noexcept {
-				deque parent = *(this->owner);
-				size_t block_index = parent.first_block + (this->index + first_offset)/(parent.BLOCK_CAPACITY);
-				size_t new_offset = this->index + parent.first_offset - (block_index - parent.first_block)*parent.BLOCK_CAPACITY;
-				return &(parent.block_lists[block_index].data[new_offset]);
+				if(this->owner == nullptr || this->index < 0 || this->index >= this->owner->current_size) throw invalid_iterator();
+				size_t block_index = (*(this->owner)).first_block + (this->index + (*(this->owner)).first_offset)/((*(this->owner)).BLOCK_CAPACITY);
+				size_t new_offset = this->index + (*(this->owner)).first_offset - (block_index - (*(this->owner)).first_block)*(*(this->owner)).BLOCK_CAPACITY;
+				return &((*(this->owner)).block_lists[block_index].data[new_offset]);
 			}
 			bool operator==(const iterator &rhs) const {
 				return (this->owner == rhs.owner)&&(this->index == rhs.index);
@@ -233,7 +237,7 @@ public:
 
 
 	/*设置block size,默认为8*/
-	size_t BLOCK_CAPACITY = 8;
+	static constexpr size_t BLOCK_CAPACITY = 32;
 
 	class block
 	{
@@ -252,7 +256,7 @@ public:
 
 		~block(){
 			/*把析构的任务交给deque管理了*/
-			operator delete(data)
+			operator delete(data);
 		};
 	};
 	
@@ -266,24 +270,36 @@ public:
 	
 	size_t current_size; //元素数目
 
-	deque(size_t BLOCKMAP_CAPACITY,size_t BLOCK_CAPACITY_outside) {
+	deque(){
 		/*deque的默认构造*/
 		/*外界是否修改BLOCK的容量？*/
-		this->BLOCK_CAPACITY =BLOCK_CAPACITY_outside
+		this->deque_capacity =  8 ;
+		this->block_lists = new block[this->deque_capacity];
+		/*从中间开始放*/
+		this->first_block = this->deque_capacity/2;
+		/*偏移为0*/
+		this->first_offset = 0;
+		/*元素数目为0*/
+		this->current_size = 0;
+	}
+
+	deque(size_t BLOCKMAP_CAPACITY) {
+		/*deque的默认构造*/
+		/*外界是否修改BLOCK的容量？*/
 		this->deque_capacity =BLOCKMAP_CAPACITY;
 		this->block_lists = new block[this->deque_capacity];
 		/*从中间开始放*/
-		first_block = this->deque_capacity/2;
+		this->first_block = this->deque_capacity/2;
 		/*偏移为0*/
-		first_offset = 0;
+		this->first_offset = 0;
 		/*元素数目为0*/
-		current_size = 0;
+		this->current_size = 0;
 	}
 	deque(const deque &other) {
 		/*拷贝构造*/
 		/*先复制参数*/
 		this->deque_capacity = other.deque_capacity;
-		this->BLOCK_CAPACITY = other.BLOCK_CAPACITY;
+
 		this->first_block = other.first_block;
 		this->first_offset = other.first_offset;
 		this->current_size = other.current_size;
@@ -297,7 +313,7 @@ public:
 			size_t new_offset = i+first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 			/* 构造 */
 			T val = other.block_lists[block_index].data[new_offset];
-			new (this->block_lists[block_index].data+new_offset) T(val);
+			new (&(this->block_lists[block_index].data[new_offset])) T(val);
 		}
 	}
 	/**
@@ -309,7 +325,7 @@ public:
 			size_t block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
 			size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 			/*显式析构*/
-			(this->block_lists[block_index].data + new_offset)->~T();
+			(&(this->block_lists[block_index].data[new_offset]))->~T();
 		}
 
 		/*删除block*/
@@ -330,7 +346,7 @@ public:
 			size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 			/*析构*/
-			(this->block_lists[block_index].data+new_offset)->~T();
+			(&(this->block_lists[block_index].data[new_offset]))->~T();
 		}
 		delete[] block_lists; // 自动删除block
 
@@ -339,7 +355,6 @@ public:
 		this->deque_capacity = other.deque_capacity;
 		this->first_block = other.first_block;
 		this->first_offset = other.first_offset;
-		this->BLOCK_CAPACITY = other.BLOCK_CAPACITY;
 
 		this->block_lists = new block[this->deque_capacity];
 
@@ -350,8 +365,9 @@ public:
 			size_t new_offset = i+first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 			/* 构造 */
 			T val = other.block_lists[block_index].data[new_offset];
-			new (this->block_lists[block_index].data+new_offset) T(val);
+			new (&(this->block_lists[block_index].data[new_offset])) T(val);
 		}
+		return *this;
 	}
 	/**
 	 * access specified element with bounds checking
@@ -361,11 +377,12 @@ public:
 		
 		size_t block_index = first_block + (pos + first_offset)/(this->BLOCK_CAPACITY);
 
-		size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
+		size_t new_offset = pos + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 		/*offset 不会超界*/
 		/*我们能保证first合法,因此只可能尾部超出*/
 		if(block_index >= this->deque_capacity) throw index_out_of_bound();
+		if(pos >= current_size) throw index_out_of_bound();
 
 		/*解析-> 先定位block, 再 拿到data ，再下标访问*/
 		return this->block_lists[block_index].data[new_offset];
@@ -374,11 +391,12 @@ public:
 
 		size_t block_index = first_block + (pos + first_offset)/(this->BLOCK_CAPACITY);
 
-		size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
+		size_t new_offset = pos + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 		/*offset 不会超界*/
 		/*我们能保证first合法,因此只可能尾部超出*/
 		if(block_index >= this->deque_capacity) throw index_out_of_bound();
+		if(pos >= current_size) throw index_out_of_bound();
 
 		/*解析-> 先定位block, 再 拿到data ，再下标访问*/
 		return this->block_lists[block_index].data[new_offset];
@@ -387,11 +405,12 @@ public:
 		/*这三个没区别*/
 		size_t block_index = first_block + (pos + first_offset)/(this->BLOCK_CAPACITY);
 
-		size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
+		size_t new_offset = pos + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 		/*offset 不会超界*/
 		/*我们能保证first合法,因此只可能尾部超出*/
 		if(block_index >= this->deque_capacity) throw index_out_of_bound();
+		if(pos >= current_size) throw index_out_of_bound();
 
 		/*解析-> 先定位block, 再 拿到data ，再下标访问*/
 		return this->block_lists[block_index].data[new_offset];
@@ -400,11 +419,12 @@ public:
 		/*这四个没区别*/
 		size_t block_index = first_block + (pos + first_offset)/(this->BLOCK_CAPACITY);
 
-		size_t new_offset = i + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
+		size_t new_offset = pos + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 		/*offset 不会超界*/
 		/*我们能保证first合法,因此只可能尾部超出*/
 		if(block_index >= this->deque_capacity) throw index_out_of_bound();
+		if(pos >= current_size) throw index_out_of_bound();
 
 		/*解析-> 先定位block, 再 拿到data ，再下标访问*/
 		return this->block_lists[block_index].data[new_offset];
@@ -448,13 +468,14 @@ public:
 	iterator end() {
 		iterator it;
 		it.owner = this;
-		it.index = this->current_size - 1;
+		it.index = this->current_size;
 		return it;
 	}
 	const_iterator cend() const {
 		const_iterator it;
 		it.owner = this;
-		it.index = this->current_size - 1;
+		it.index = this->current_size;
+		return it;
 	}
 	/**
 	 * checks whether the container is empty.
@@ -477,7 +498,7 @@ public:
 			size_t block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
 			size_t new_offset = i + first_offset - (block_index-first_block)  * this->BLOCK_CAPACITY;
 			/*显式析构*/
-			(this->block_lists[block_index].data[new_offset])->~T();
+			(&(this->block_lists[block_index].data[new_offset]))->~T();
 		}
 		/*清0之后重置size等参数*/
 		current_size = 0;
@@ -493,13 +514,14 @@ public:
 	iterator insert(iterator pos, const T &value) {
 		if(pos.owner != this || pos.index > current_size) throw invalid_iterator();
 		size_t index = pos.index;
+		T copy_value = value;
 		/*检查需不需要扩容*/
 
 		/*插入之后，最后一个元素的位置*/
 		size_t block_index = first_block + (current_size + first_offset)/(this->BLOCK_CAPACITY);
 		size_t new_offset = current_size + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
 
-		if(block_index == deque_capacity){
+		if(block_index >= deque_capacity){
 			/*扩容*/
 			this->resize(this->deque_capacity*2);
 		}
@@ -508,7 +530,7 @@ public:
 			/*如果是最后一个，就不用管了*/
 			block_index = first_block + (current_size + first_offset)/(this->BLOCK_CAPACITY);
 			new_offset = current_size + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
-			new (this->block_lists[block_index].data[new_offset]) T(value);
+			new (&(this->block_lists[block_index].data[new_offset])) T(copy_value);
 			this->current_size++;
 			return iterator(this,index);
 		}
@@ -516,16 +538,16 @@ public:
 		for(int i = this->current_size ; i > index ; i--){
 			block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
 			new_offset = i + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
-			if(i != current_size) (this->block_lists[block_index].data[new_offset]) ->~T();
+			if(i != current_size) (&(this->block_lists[block_index].data[new_offset])) ->~T();
 			size_t front_one_block = first_block + (i - 1 + first_offset)/(this->BLOCK_CAPACITY);
-			size_t front_one_offset = i - 1 + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
-			new (this->block_lists[block_index].data[new_offset]) T(this->block_lists[front_one_block].data[front_one_offset]);
+			size_t front_one_offset = i - 1 + first_offset - (front_one_block - first_block)*this->BLOCK_CAPACITY;
+			new (&(this->block_lists[block_index].data[new_offset])) T(this->block_lists[front_one_block].data[front_one_offset]);
 		}
 		/*然后new新的*/
 		block_index = first_block + (index + first_offset)/(this->BLOCK_CAPACITY);
 		new_offset = index + first_offset - (block_index - first_block)*this->BLOCK_CAPACITY;
-		(this->block_lists[block_index].data[new_offset])->~T();
-		new (this->block_lists[block_index].data[new_offset]) T(value);
+		(&(this->block_lists[block_index].data[new_offset]))->~T();
+		new (&(this->block_lists[block_index].data[new_offset])) T(copy_value);
 		this->current_size ++;
 		return iterator(this,index);
 	}
@@ -536,18 +558,23 @@ public:
 	 * throw if the container is empty, the iterator is invalid or it points to a wrong place.
 	 */
 	iterator erase(iterator pos) {
-		if(pos.owner != this || pos.index >= this->current_size) throw invalid_iterator();
+		if(pos.owner != this) throw invalid_iterator();
+		if(pos.index >= this->current_size) throw invalid_iterator();
+		if(this->current_size == 0) throw container_is_empty();
 		size_t index = pos.index;
 		for(size_t i = index ; i < current_size - 1 ; i++){
 			size_t this_block_index = first_block + (i + first_offset)/(this->BLOCK_CAPACITY);
 			size_t this_new_offset = i + first_offset - (this_block_index - first_block)*this->BLOCK_CAPACITY;
 
 			size_t next_block_index =first_block + (i + 1 + first_offset)/(this->BLOCK_CAPACITY);
-			size_t next_new_offset = i + 1 + first_offset - (this_block_index - first_block)*this->BLOCK_CAPACITY;
+			size_t next_new_offset = i + 1 + first_offset - (next_block_index - first_block)*this->BLOCK_CAPACITY;
 
-			(this->block_lists[this_block_index].data[this_new_offset]) ->~T();
-			new (this-block_lists[this_block_index].data[this_new_offset]) T(this->block_lists[next_block_index].data[next_new_offset]);
+			(&(this->block_lists[this_block_index].data[this_new_offset])) ->~T();
+			new (&(this->block_lists[this_block_index].data[this_new_offset])) T(this->block_lists[next_block_index].data[next_new_offset]);
 		}
+		size_t last_block = first_block + (current_size - 1 + first_offset)/(this->BLOCK_CAPACITY);
+		size_t last_offset = current_size - 1 + first_offset - (last_block - first_block)*this->BLOCK_CAPACITY;
+		(&(this->block_lists[last_block].data[last_offset])) ->~T();
 		this->current_size --;
 		return iterator(this,index);
 	}
@@ -557,7 +584,7 @@ public:
 	void push_back(const T &value) {
 		/*好的，我们来检查尾部插入的情况*/
 		/*这个地方不涉及到first block 的移动，也不涉及到first offset的改变，比较好写*/
-
+		T copy_value = value;
 		/*先判断目前要不要扩容*/
 		/*这个地方都是指插入的位置*/
 		size_t block_index = first_block + (current_size  + first_offset)/(this->BLOCK_CAPACITY);
@@ -569,7 +596,7 @@ public:
 		//	block_index ++ ;
 		//}   这个检测是多余的
 		/*判断block是否存在*/
-		if(block_index == deque_capacity){
+		if(block_index >= deque_capacity){
 			/*必须扩容了*/
 			this->resize(this->deque_capacity * 2);
 			/*重新计算*/
@@ -577,12 +604,12 @@ public:
 			size_t new_offset = current_size  + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 			/*插入*/
-			new (this->block_lists[block_index].data[new_offset]) T(value);
+			new (&(this->block_lists[block_index].data[new_offset])) T(copy_value);
 			this->current_size++;
 
 		}else{
 			/*不用*/
-			new (this->block_lists[block_index].data[new_offset]) T(value);
+			new (&(this->block_lists[block_index].data[new_offset])) T(copy_value);
 			this->current_size++;
 		}
 	}
@@ -595,11 +622,11 @@ public:
 		/*尾部弹出的情况*/
 		size_t index = current_size - 1;
 		/*先拿参数*/
-		size_t block_index = first_block + (current_size + index)/(this->BLOCK_CAPACITY);
-		size_t new_offset = current_size + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
+		size_t block_index = first_block + (index + first_offset)/(this->BLOCK_CAPACITY);
+		size_t new_offset = index + first_offset - (block_index - first_block) * this->BLOCK_CAPACITY;
 
 		/*调用析构函数*/
-		(this->block_lists[block_index].data[new_offset])->~T();
+		(&(this->block_lists[block_index].data[new_offset]))->~T();
 
 		/*更新参数*/
 		this->current_size --;
@@ -608,25 +635,30 @@ public:
 	 * inserts an element to the beginning.
 	 */
 	void push_front(const T &value) {
+		T copy_value = value;
 		/*push_front 稍微复杂一点点，但是其实大差不差*/
 		/*而且还更方便! 我们不用去算参数了*/
+		bool change_size = false;
 		if(this->first_offset == 0){
-			first_block--;
-			first_offset = this->BLOCK_CAPACITY - 1;
+			if(first_block == 0) change_size = true;
+			else{
+				first_block --;
+				first_offset = this->BLOCK_CAPACITY - 1;
+			}
 		}else{
 			first_offset --;
 		}
 
-		if(this->first_block < 0){
+		if(change_size){
 			/*出界了！*/
 			this->resize(this->deque_capacity * 2);
 			
-			/*我们已经在resize里面做过，我们把first_block 默认设定为0了,所以可以直接*/
+			/*我们已经在resize里面做过，我们把first_offset 默认设定为0了,所以可以直接*/
 			this->first_block --;
 			this->first_offset = this->BLOCK_CAPACITY - 1;
 		}
 		/*构造*/
-		new (this->block_lists[first_block].data[first_offset]) T(value);
+		new (&(this->block_lists[first_block].data[first_offset])) T(copy_value);
 		this->current_size ++;
 	}
 	/**
@@ -636,7 +668,7 @@ public:
 	void pop_front() {
 		if(this->current_size == 0) throw container_is_empty();
 		else{
-			(this->block_lists[first_block].data[first_offset])->~T();
+			(&(this->block_lists[first_block].data[first_offset]))->~T();
 			this->first_offset++;
 			if(first_offset == this->BLOCK_CAPACITY){
 				this->first_block++;
@@ -660,13 +692,13 @@ public:
 			/*拿到值*/
 			T val = this->block_lists[block_index].data[old_new_offset];
 			/*拿完就删除原来的*/
-			(this->block_lists[block_index].data[old_new_offset])->~T();
+			(&(this->block_lists[block_index].data[old_new_offset]))->~T();
 
 			/*拷贝到新的*/
 			size_t new_block_index = new_first_block + (i + new_first_offset)/(this->BLOCK_CAPACITY); // block capacity不变
 			size_t new_new_offset = i + new_first_offset - (new_block_index - new_first_block) * this->BLOCK_CAPACITY;
 
-			new (new_block_lists[new_block_index].data + new_new_offset) T(val);
+			new (&(new_block_lists[new_block_index].data[new_new_offset])) T(val);
 		}
 
 		delete[] this->block_lists;
@@ -674,6 +706,7 @@ public:
 		this->block_lists = new_block_lists;
 		this->first_block = new_first_block;
 		this->first_offset = new_first_offset;
+		this->deque_capacity = new_block_capacity;
 	}
 };
 
