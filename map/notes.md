@@ -85,3 +85,11 @@ value有拷贝构造函数吗？
 value有复制赋值函数吗？
 
 我如果只有key,我怎么插入一个节点？
+
+## 怎么构造value?
+node->value = pair<const Key, T>(key, value) 就行了，直接构造
+
+## iterator类的设计
+
+map* owner
+Node* node
