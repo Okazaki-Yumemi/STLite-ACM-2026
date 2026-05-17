@@ -58,16 +58,8 @@ template<
       color = 0;
     }
 
-    /*Node的复制构造函数*/
-    Node(Node* other){
-      /*我们要专门写一个克隆树的，这个地方复制构造我们就只构造自己就可以了*/
-      this->parent = nullptr;
-      this->left = nullptr;
-      this->right = nullptr;
-      this->parent = nullptr;
-      this->value = other->value;
-      this->color = other->color;
-    }
+    /*Node的复制构造函数不要了*/
+    
   };
 
 
@@ -106,8 +98,8 @@ template<
       iterator new_iterator;
       Node* current_node = this->node;
 
-      new_iterator->owner = this->owner;
-      new_iterator->node = this->node;
+      new_iterator.owner = this->owner;
+      new_iterator.node = this->node;
 
       if(current_node->right != nullptr){
         this->node = current_node->right;
@@ -137,8 +129,8 @@ template<
       iterator new_iterator;
       Node* current_node = this->node;
 
-      new_iterator->owner = this->owner;
-      new_iterator->node = this->node;
+      new_iterator.owner = this->owner;
+      new_iterator.node = this->node;
 
       this->node = current_node->left;
       
@@ -186,7 +178,7 @@ template<
      */
     value_type *operator->() const
     noexcept {
-      return this->node->value;
+      return &(this->node->value);
     }
   };
   class const_iterator {
@@ -196,7 +188,7 @@ template<
     // data members.
    public:
     const map* owner;
-    const Node* node;
+    Node* node;
     const_iterator() {
       // TODO
       this->owner = nullptr;
@@ -219,8 +211,8 @@ template<
       const_iterator new_iterator;
       Node* current_node = this->node;
 
-      new_iterator->owner = this->owner;
-      new_iterator->node = this->node;
+      new_iterator.owner = this->owner;
+      new_iterator.node = this->node;
 
       if(current_node->right != nullptr){
         this->node = current_node->right;
@@ -244,8 +236,8 @@ template<
       const_iterator new_iterator;
       Node* current_node = this->node;
 
-      new_iterator->owner = this->owner;
-      new_iterator->node = this->node;
+      new_iterator.owner = this->owner;
+      new_iterator.node = this->node;
 
       this->node = current_node->left;
       
@@ -279,7 +271,7 @@ template<
 
     value_type *operator->() const
     noexcept {
-      return this->node->value;
+      return &(this->node->value);
     }
     // And other methods in iterator.
     // And other methods in iterator.
@@ -309,18 +301,20 @@ template<
     this->current_size = other.current_size;
   }
 
-  Node* clone_tree(const Node& other){
-    if(other = nullptr) return nullptr;
-    Node* this_one = new Node(other);
+  Node* clone_tree(const Node* other){
+    if(other == nullptr) return nullptr;
+    Node* this_one = new Node(other->value);
 
-    Node* left = clone(other->left);
+    this_one->color = other->color;
 
-    Node* right = clone(other->left);
+    Node* left = clone_tree(other->left);
+
+    Node* right = clone_tree(other->right);
 
     this_one->left = left;
-    left->parent = this_one;
+    if (left != nullptr) left->parent = this_one;
     this_one->right = right;
-    right->parent = this_one;
+    if (right != nullptr)right->parent = this_one;
 
     return this_one;
   }
@@ -337,24 +331,8 @@ template<
       this->root_node = clone_tree(other.root_node);
       this->cmp = other.cmp;
       this->current_size = other.current_size;
-    }
-  }
 
-  /*辅助函数，克隆子树*/
-  void clone_subtree(Node* old , Node* parent){
-    if(old == nullptr) return;
-    else{
-      /*old < parent 左侧*/
-      if(cmp(old->value.first , parent->value.first)){
-        parent->left = new Node(old);
-        clone_subtree(old->left , parent->left);
-        clone_subtree(old->right, parent->left);
-      }else{
-        /*parent < old*/
-        parent -> right = new Node(old);
-        clone_subtree(old->left , parent->right);
-        clone_subtree(old->right, parent->right);
-      }
+      return *this;
     }
   }
 
@@ -373,13 +351,13 @@ template<
     delete_node(this->root_node);
   }
 
-  bool equal_key(const Key & key , Node* node){
+  bool equal_key(const Key & key , Node* node) const{
     return (!cmp(node->value.first , key) && !cmp(key,node->value.first));
   }
 
 
   /*写一个统一的Find node*/
-  Node* find_node(const Key &key){
+  Node* find_node(const Key &key) const {
     Node* search_node = root_node;
     while(search_node != nullptr && !equal_key(key,search_node)){
       /*key大*/
@@ -425,8 +403,17 @@ template<
    *   performing an insertion if such key does not already exist.
    */
   T &operator[](const Key &key) {
-    Node* search_node = root_node;
-    /*这个地方涉及到插入,我们先不要处理*/
+    
+    Node* node = find_node(key);
+
+    if(node != nullptr){
+      return node->value.second;
+    }else{
+      value_type val = pair<const Key,T>(key,T());
+      insert_val(val);
+      node = find_node(key);
+      return node->value.second;
+    }
   }
 
   /**
@@ -451,8 +438,8 @@ template<
       search_node = search_node->left;
     }
 
-    it->node = search_node;
-    it->owner = this;
+    it.node = search_node;
+    it.owner = this;
     return it;
   }
 
@@ -463,8 +450,8 @@ template<
       search_node = search_node->left;
     }
 
-    it->node = search_node;
-    it->owner = this;
+    it.node = search_node;
+    it.owner = this;
     return it;
   }
 
@@ -479,8 +466,8 @@ template<
       search_node = search_node->right;
     }
 
-    it->node = search_node;
-    it->owner = this;
+    it.node = search_node;
+    it.owner = this;
     return it;
   }
 
@@ -491,8 +478,8 @@ template<
       search_node = search_node->right;
     }
 
-    it->node = search_node;
-    it->owner = this;
+    it.node = search_node;
+    it.owner = this;
     return it;
   }
 
@@ -528,10 +515,10 @@ template<
    */
   pair<iterator, bool> insert(const value_type &value) {
     iterator it;
-    bool judge = insert(value);
+    bool judge = insert_val(value);
     Node* target_node = find_node(value.first);
-    it->node = target_node;
-    it->owner = this;
+    it.node = target_node;
+    it.owner = this;
 
     return pair<iterator,bool>(it , judge);
   }
@@ -542,7 +529,7 @@ template<
    * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
    */
   void erase(iterator pos) {
-    Node* node = pos->node;
+    Node* node = pos.node;
     map_delete_node(node);
   }
 
@@ -554,7 +541,7 @@ template<
    * The default method of check the equivalence is !(a < b || b > a)
    */
   size_t count(const Key &key) const {
-    Node* search_node = find_node(key);
+    Node* search_node = this->find_node(key);
     if(search_node == nullptr) return 0 ;
     return 1;
   }
@@ -568,33 +555,32 @@ template<
   iterator find(const Key &key) {
     Node* target_node = find_node(key);
     iterator it;
-    it->node = target_node;
-    it->owner = this;
+    it.node = target_node;
+    it.owner = this;
     return it;
   }
 
   const_iterator find(const Key &key) const {
     Node* target_node = find_node(key);
     const_iterator it;
-    it->node = target_node;
-    it->owner = this;
+    it.node = target_node;
+    it.owner = this;
     return it;
   }
 
   /*赋值函数，根据val插入,自动完成插入调整*/
-  bool insert(const value_type& val){
+  bool insert_val(const value_type& val){
     Node* search_node = find_node(val.first);
-    /*非空，替换*/
+    /*非空，插入失败*/
     if(search_node != nullptr){
-      search_node->value = val;
-      return false; // 发生了替换
+      return false; 
     }else{
       /*这个地方得从他父亲去找*/
       search_node = root_node;
       Node* parent = nullptr;
       while(search_node != nullptr){
         /*key大*/
-        if(cmp(search_node->value.first , key)) {
+        if(cmp(search_node->value.first , val.first)) {
           parent = search_node;
           search_node = search_node->right;
         }
@@ -639,7 +625,7 @@ template<
       /*因为父亲节点是红色的，父亲节点不可能是根节点，所以我们可以肯定grandpa存在*/
       Node* grandpa = fahter->parent;
       Node* uncle = nullptr;
-      if(grandpa->left == fahter) uncle = grandpa->right
+      if(grandpa->left == fahter) uncle = grandpa->right;
       else{
         uncle = grandpa->left;
       }
@@ -651,7 +637,7 @@ template<
         uncle->color = (uncle->color == 1)? 0:1;
         fahter->color = (fahter->color == 1)? 0:1;
         /*递归处理爷爷*/
-        adjust(grandpa);
+        insert_adjust(grandpa);
       }else{
         /*叔叔是黑色*/
         if(grandpa->left == fahter && fahter->left == node){
@@ -814,7 +800,7 @@ template<
       /*search_node 一直左移，走到最下面*/
       /*直接后继代替，删除后续节点*/
       node->value.~pair();
-      node->value = new pair<const Key, T>(search_node->value.first,search_node->value.second);
+      new (&(node->value)) pair<const Key, T>(search_node->value.first,search_node->value.second);
       /*递归删除直接后继*/
       map_delete_node(search_node);
     }else if(child_count == 1){

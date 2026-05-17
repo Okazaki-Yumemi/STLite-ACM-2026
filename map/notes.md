@@ -88,8 +88,14 @@ value有复制赋值函数吗？
 
 ## 怎么构造value?
 node->value = pair<const Key, T>(key, value) 就行了，直接构造
+没有value的时候，用默认构造参数，这么写
+node->value = pair<const Key, T>(key, T()) 就行了，直接构造
 
 ## iterator类的设计
 
 map* owner
 Node* node
+
+```cpp
+new (&(node->value)) pair<const Key, T>(search_node->value.first,search_node->value.second);
+```
