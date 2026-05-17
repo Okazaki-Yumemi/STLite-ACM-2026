@@ -95,6 +95,7 @@ template<
      * TODO iter++
      */
     iterator operator++(int) {
+      if(owner == nullptr || node == nullptr) throw invalid_iterator();
       iterator new_iterator;
       Node* current_node = this->node;
 
@@ -103,8 +104,15 @@ template<
 
       if(current_node->right != nullptr){
         this->node = current_node->right;
+        while (this->node->left != nullptr)
+        {
+          this->node = this->node->left;
+        }
       }else{
-        this->node = current_node->parent;
+        while (this->node->parent != nullptr && (this->node->parent->right == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
       }
       return new_iterator;
     }
@@ -113,11 +121,19 @@ template<
      * TODO ++iter
      */
     iterator &operator++() {
+      if(owner == nullptr || node == nullptr) throw invalid_iterator();
       Node* current_node = this->node;
       if(current_node->right != nullptr){
         this->node = current_node->right;
+        while (this->node->left != nullptr)
+        {
+          this->node = this->node->left;
+        }
       }else{
-        this->node = current_node->parent;
+        while (this->node->parent != nullptr && (this->node->parent->right == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
       }
       return *this;
     }
@@ -126,13 +142,36 @@ template<
      * TODO iter--
      */
     iterator operator--(int) {
+      if(*this == this->owner->begin()) throw invalid_iterator();
       iterator new_iterator;
       Node* current_node = this->node;
 
       new_iterator.owner = this->owner;
       new_iterator.node = this->node;
+      
+      if(current_node == nullptr){
+        current_node = owner->root_node;
+        while (current_node -> right != nullptr)
+        {
+          current_node = current_node ->right;
+        }
+        this->node = current_node;
+        return *this;
+      }
 
-      this->node = current_node->left;
+
+      if(current_node->left != nullptr){
+        this->node = current_node->left;
+        while (this->node->right != nullptr)
+        {
+          this->node = this->node->right;
+        }
+      }else{
+        while (this->node->parent != nullptr && (this->node->parent->left == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
+      }
       
       return new_iterator;
     }
@@ -141,12 +180,36 @@ template<
      * TODO --iter
      */
     iterator &operator--() {
-      this->node = this->node->left;
+      if(*this == this->owner->begin()) throw invalid_iterator();
+      Node* current_node = this->node;
+      if(current_node == nullptr){
+        current_node = owner->root_node;
+        while (current_node -> right != nullptr)
+        {
+          current_node = current_node ->right;
+        }
+        this->node = current_node;
+        return *this;
+      }
+
+      if(current_node->left != nullptr){
+        this->node = current_node->left;
+        while (this->node->right != nullptr)
+        {
+          this->node = this->node->right;
+        }
+      }else{
+        while (this->node->parent != nullptr && (this->node->parent->left == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
+      }
       return *this;
     }
 
     
     value_type &operator*() const {
+      if(this->node == nullptr) throw invalid_iterator();
       return this->node->value;
     }
 
@@ -178,6 +241,7 @@ template<
      */
     value_type *operator->() const
     noexcept {
+      if(this->node == nullptr) throw invalid_iterator();
       return &(this->node->value);
     }
   };
@@ -208,6 +272,7 @@ template<
     }
     // And other methods in iterator.
     const_iterator operator++(int){
+      if(owner == nullptr || node == nullptr) throw invalid_iterator();
       const_iterator new_iterator;
       Node* current_node = this->node;
 
@@ -216,40 +281,102 @@ template<
 
       if(current_node->right != nullptr){
         this->node = current_node->right;
+        while (this->node->left != nullptr)
+        {
+          this->node = this->node->left;
+        }
       }else{
-        this->node = current_node->parent;
+        while (this->node->parent != nullptr && (this->node->parent->right == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
       }
       return new_iterator;
     }
 
     const_iterator &operator++() {
+      if(owner == nullptr || node == nullptr) throw invalid_iterator();
       Node* current_node = this->node;
       if(current_node->right != nullptr){
         this->node = current_node->right;
+        while (this->node->left != nullptr)
+        {
+          this->node = this->node->left;
+        }
       }else{
-        this->node = current_node->parent;
+        while (this->node->parent != nullptr && (this->node->parent->right == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
       }
       return *this;
     }
 
     const_iterator operator--(int) {
+      if(*this == this->owner->cbegin()) throw invalid_iterator();
       const_iterator new_iterator;
       Node* current_node = this->node;
 
       new_iterator.owner = this->owner;
       new_iterator.node = this->node;
 
-      this->node = current_node->left;
+      if(current_node == nullptr){
+        current_node = owner->root_node;
+        while (current_node -> right != nullptr)
+        {
+          current_node = current_node ->right;
+        }
+        this->node = current_node;
+        return *this;
+      }
+
+      if(current_node->left != nullptr){
+        this->node = current_node->left;
+        while (this->node->right != nullptr)
+        {
+          this->node = this->node->right;
+        }
+      }else{
+        while (this->node->parent != nullptr && (this->node->parent->left == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
+      }
       
       return new_iterator;
     }
 
     const_iterator &operator--() {
-      this->node = this->node->left;
+      if(*this == this->owner->cbegin()) throw invalid_iterator();
+      Node* current_node = this->node;
+
+      if(current_node == nullptr){
+        current_node = owner->root_node;
+        while (current_node -> right != nullptr)
+        {
+          current_node = current_node ->right;
+        }
+        this->node = current_node;
+        return *this;
+      }
+
+      if(current_node->left != nullptr){
+        this->node = current_node->left;
+        while (this->node->right != nullptr)
+        {
+          this->node = this->node->right;
+        }
+      }else{
+        while (this->node->parent != nullptr && (this->node->parent->left == this->node)){
+          this->node = this->node->parent;
+        }
+        this->node = this->node->parent;
+      }
       return *this;
     }
 
     value_type &operator*() const {
+      if(this->node == nullptr) throw invalid_iterator();
       return this->node->value;
     }
 
@@ -271,6 +398,7 @@ template<
 
     value_type *operator->() const
     noexcept {
+      if(this->node == nullptr) throw invalid_iterator();
       return &(this->node->value);
     }
     // And other methods in iterator.
@@ -318,7 +446,6 @@ template<
 
     return this_one;
   }
-
   /**
    * TODO assignment operator
    */
@@ -403,16 +530,14 @@ template<
    *   performing an insertion if such key does not already exist.
    */
   T &operator[](const Key &key) {
-    
     Node* node = find_node(key);
 
     if(node != nullptr){
       return node->value.second;
     }else{
       value_type val = pair<const Key,T>(key,T());
-      insert_val(val);
-      node = find_node(key);
-      return node->value.second;
+      pair<Node*,bool> result = insert_val(val);
+      return result.first->value.second;
     }
   }
 
@@ -461,24 +586,14 @@ template<
    */
   iterator end() {
     iterator it;
-    Node* search_node = root_node;
-    while(search_node!= nullptr && search_node->right != nullptr){
-      search_node = search_node->right;
-    }
-
-    it.node = search_node;
+    it.node = nullptr;
     it.owner = this;
     return it;
   }
 
   const_iterator cend() const {
     const_iterator it;
-    Node* search_node = root_node;
-    while(search_node!= nullptr && search_node->right != nullptr){
-      search_node = search_node->right;
-    }
-
-    it.node = search_node;
+    it.node = nullptr;
     it.owner = this;
     return it;
   }
@@ -502,9 +617,9 @@ template<
    * clears the contents
    */
   void clear() {
-    delete(root_node);
+    delete_node(root_node);
     root_node = nullptr;
-    this->current_size == 0;
+    this->current_size = 0;
   }
 
   /**
@@ -515,12 +630,12 @@ template<
    */
   pair<iterator, bool> insert(const value_type &value) {
     iterator it;
-    bool judge = insert_val(value);
-    Node* target_node = find_node(value.first);
-    it.node = target_node;
+    pair<Node*, bool> result = insert_val(value);
+
+    it.node = result.first;
     it.owner = this;
 
-    return pair<iterator,bool>(it , judge);
+    return pair<iterator, bool>(it, result.second);
   }
 
   /**
@@ -529,6 +644,7 @@ template<
    * throw if pos pointed to a bad element (pos == this->end() || pos points an element out of this)
    */
   void erase(iterator pos) {
+    if(pos == this->end() || pos.owner != this) throw invalid_iterator();
     Node* node = pos.node;
     map_delete_node(node);
   }
@@ -569,40 +685,47 @@ template<
   }
 
   /*赋值函数，根据val插入,自动完成插入调整*/
-  bool insert_val(const value_type& val){
-    Node* search_node = find_node(val.first);
-    /*非空，插入失败*/
-    if(search_node != nullptr){
-      return false; 
-    }else{
-      /*这个地方得从他父亲去找*/
-      search_node = root_node;
-      Node* parent = nullptr;
-      while(search_node != nullptr){
-        /*key大*/
-        if(cmp(search_node->value.first , val.first)) {
-          parent = search_node;
-          search_node = search_node->right;
-        }
-        else{
-          parent = search_node;
-          search_node = search_node->left;
-        }
-      }
-      /*这个地方search_node必定落在nullptr*/
-      /*可以创建了*/
-      search_node = new Node(val,parent); // 默认红色
-      /*然后看大小 search < parent  */
-      if(cmp(search_node->value.first , parent->value.first)){
-        parent->left = search_node;
-      }else{
-        parent->right = search_node;
-      }
-      /*可以开始调整*/
-      insert_adjust(search_node);
-      /*ok!*/
-      return true; //空插入
+  pair<Node*,bool> insert_val(const value_type& val){
+    if(this->current_size == 0){
+      this->root_node = new Node(val);
+      this->current_size ++;
+      this->root_node->color = 1;
+      return pair<Node*,bool>(root_node,true);
     }
+
+    /*一次查找*/
+    Node* search_node = this->root_node;
+    Node* parent = nullptr;
+    while(search_node != nullptr){
+      parent = search_node;
+
+      /*key 相等*/
+      if(equal_key(val.first,search_node)){
+        return pair<Node*,bool>(search_node,false);
+      }
+
+      /*当前的 < 新的*/
+      if(cmp(search_node->value.first , val.first)){
+        search_node = search_node->right;
+      }else{
+        search_node = search_node->left;
+      }
+    }
+
+    /* searchnode 滚到 nullptr了 */
+    Node * new_node = new Node(val,parent);
+
+    if(cmp(new_node->value.first , parent->value.first)){
+      parent->left = new_node;
+    }else{
+      parent->right = new_node;
+    }
+
+    /*插入修复*/
+    insert_adjust(new_node);
+
+    this->current_size ++;
+    return pair<Node*,bool>(new_node,true);
   }
 
 
@@ -630,7 +753,7 @@ template<
         uncle = grandpa->left;
       }
       /*看叔叔什么情况了*/
-      if(uncle->color == 0){
+      if(uncle != nullptr && uncle->color == 0){
         /*叔叔是红色*/
         /*颜色取反*/
         grandpa->color = (grandpa->color == 1)? 0:1;
@@ -683,7 +806,7 @@ template<
           Node* great_grandpa = grandpa->parent;
           if(great_grandpa == nullptr){
             /*太爷爷空*/
-            this->root_node = this->RR(grandpa);
+            this->root_node = this->RL(grandpa);
           }else{
             size_t left_right = 0;
             if(great_grandpa->right == grandpa) left_right = 1;
@@ -701,7 +824,7 @@ template<
           Node* great_grandpa = grandpa->parent;
           if(great_grandpa == nullptr){
             /*太爷爷空*/
-            this->root_node = this->RR(grandpa);
+            this->root_node = this->LR(grandpa);
           }else{
             size_t left_right = 0;
             if(great_grandpa->right == grandpa) left_right = 1;
@@ -728,6 +851,8 @@ template<
     /*然后*/
     father->right = grandpa;
 
+    if(grandpa->left != nullptr) grandpa->left->parent = grandpa;
+
     father->parent = grandpa->parent;
     grandpa->parent = father;
 
@@ -747,6 +872,8 @@ template<
     grandpa->right = father->left;
     father->left = grandpa;
 
+    if(grandpa->right != nullptr) grandpa->right->parent = grandpa;
+
     father->parent = grandpa->parent;
     grandpa->parent = father;
 
@@ -765,6 +892,8 @@ template<
     father->right = son->left;
     son->left = father;
 
+    if(father->right != nullptr) father->right->parent = father;
+
     father->parent = son;
     son->parent = grandpa;
     grandpa->left = son;
@@ -779,30 +908,160 @@ template<
     father->left = son->right;
     son->right = father;
 
+    if(father->left != nullptr) father->left->parent = father;
+
     father->parent = son;
     son->parent = grandpa;
     grandpa->right = son;
 
     return RR(grandpa);
   }
+  /*
+  双孩子删除专用：
+  把 node 与其直接后继 successor 的“树位置”交换。
+
+  交换后：
+  - successor 占据 node 原来的位置
+  - node 占据 successor 原来的位置
+  - node 会变成“至多只有一个右孩子”的节点
+  - 后续直接调用 map_delete_node(node) 即可完成真正删除
+
+  注意：
+  颜色也要交换。
+  因为颜色属于“树位置”的红黑性质，而不是 key 本身。
+*/
+  void swap_node_with_successor(Node* node, Node* successor){
+    Node* node_parent = node->parent;
+    Node* node_left = node->left;
+    Node* node_right = node->right;
+
+    Node* succ_parent = successor->parent;
+    Node* succ_right = successor->right;
+
+    /* 颜色跟着位置走，所以交换颜色 */
+    size_t temp_color = node->color;
+    node->color = successor->color;
+    successor->color = temp_color;
+
+    /*
+      情况 1：
+      successor 就是 node->right
+    */
+    if(succ_parent == node){
+      /* successor 接到 node 原来的父亲处 */
+      successor->parent = node_parent;
+
+      if(node_parent == nullptr){
+        root_node = successor;
+      }else if(node_parent->left == node){
+        node_parent->left = successor;
+      }else{
+        node_parent->right = successor;
+      }
+
+      /* successor 占据 node 原位置 */
+      successor->left = node_left;
+      if(node_left != nullptr){
+        node_left->parent = successor;
+      }
+
+      successor->right = node;
+      node->parent = successor;
+
+      /*
+        node 移到 successor 原位置。
+        successor 作为直接右孩子，本来没有 left；
+        node 也必须没有 left。
+      */
+      node->left = nullptr;
+      node->right = succ_right;
+      if(succ_right != nullptr){
+        succ_right->parent = node;
+      }
+    }
+    /*
+      情况 2：
+      successor 在 node->right 的更深处
+    */
+    else{
+      /*
+        先让 node 占据 successor 原来的位置
+        successor 是直接后继，因此它不会有 left 子树。
+      */
+      if(succ_parent->left == successor){
+        succ_parent->left = node;
+      }else{
+        succ_parent->right = node;
+      }
+
+      node->parent = succ_parent;
+      node->left = nullptr;
+      node->right = succ_right;
+      if(succ_right != nullptr){
+        succ_right->parent = node;
+      }
+
+      /* 再让 successor 占据 node 原来的位置 */
+      successor->parent = node_parent;
+
+      if(node_parent == nullptr){
+        root_node = successor;
+      }else if(node_parent->left == node){
+        node_parent->left = successor;
+      }else{
+        node_parent->right = successor;
+      }
+
+      successor->left = node_left;
+      if(node_left != nullptr){
+        node_left->parent = successor;
+      }
+
+      successor->right = node_right;
+      if(node_right != nullptr){
+        node_right->parent = successor;
+      }
+    }
+  }
 
   /*辅助函数，删除某个Node*/
   void map_delete_node(Node* node){
+    if(node == nullptr) return;
     size_t child_count = 0;
     if(node->right != nullptr) child_count++;
     if(node->left != nullptr) child_count++;
+
+    if(node == root_node){
+      /*根节点特区*/
+      if(child_count == 0){
+        delete root_node;
+        root_node = nullptr;
+        current_size --;
+        return;
+      }
+      if(child_count == 1){
+        Node* son = nullptr;
+        if(node->left != nullptr) son = node->left;
+        else{
+          son = node->right;
+        }
+        delete root_node;
+        son->color = 1;
+        son->parent = nullptr;
+        current_size --;
+        root_node = son;
+        return;
+      }
+        /*什么都不做，自己掉到下面 child_count = 2去*/
+    }
     if(child_count == 2){
       /*找直接后继*/
-      Node* search_node = node->right;
-      while(search_node->left != nullptr){
-        search_node = search_node->left;
+      Node* successor = node->right;
+      while(successor->left != nullptr){
+        successor = successor->left;
       }
-      /*search_node 一直左移，走到最下面*/
-      /*直接后继代替，删除后续节点*/
-      node->value.~pair();
-      new (&(node->value)) pair<const Key, T>(search_node->value.first,search_node->value.second);
-      /*递归删除直接后继*/
-      map_delete_node(search_node);
+      swap_node_with_successor(node,successor);
+      map_delete_node(node);
     }else if(child_count == 1){
       /*看看是左还是右侧*/
       size_t left_right = 0;
@@ -811,43 +1070,57 @@ template<
         /*右侧*/
         Node* son = node->right;
         son->parent = node->parent;
+        son->color = 1; // 变色
         if(node->parent->left == node){
           node->parent->left = son;
         }else{
           node->parent->right = son;
         }
+
         delete node;
+        this->current_size --;
       }else{
         /*左侧*/
         Node* son = node->left;
         son->parent = node->parent;
+        son->color = 1; //变色
         if(node->parent->left == node){
           node->parent->left = son;
         }else{
           node->parent->right = son;
         }
         delete node;
+        this->current_size --;
       }
       /*OK!*/
     }else{
       /* child_count == 0 */
       if(node->color == 0){
         /* 如果是红色 */
+        Node* father = node->parent;
+        if(father->left == node) father->left = nullptr;
+        else{
+          father->right = nullptr;
+        }
         delete node;
+        this->current_size --;
+        return;
       }else{
         /* 如果是黑色，要变成双黑了，去处理吧*/
-        node->color == 2;
+        node->color = 2;
         /* 处理双黑,然后删除 */
         adjust_delete_node(node);
 
-        if(node->parent->left == node) node->parent->left = nullptr;
-        else{
-          node->parent->right = nullptr;
+        if(node->parent != nullptr){
+          if(node->parent->left == node) node->parent->left = nullptr;
+          else{
+            node->parent->right = nullptr;
+          }
         }
         delete node;
+        this->current_size --;
       }
     }
-
   }
 
   /*辅助函数，调整节点,专门用来调整双黑*/
@@ -856,15 +1129,26 @@ template<
     if(node == root_node || node->color == 0){
       node->color = 1;
       /*消除双黑*/
+      return;
     }
     Node* father = node->parent;
     Node* brother = nullptr;
-    /*我们刚刚已经断开了从父亲到node的路径*/
+
     if(father->left == node) brother = father->right;
     else{
       brother = father->left;
     }
-    /*根据红黑树的性质，brother不可能是nullptr*/
+    /*处理brother*/
+    if(brother == nullptr){
+      if(father->color == 0){
+        father->color = 1;
+        return;
+      }else{
+        father->color = 2;
+        adjust_delete_node(father);
+        return;
+      }
+    }
     if(brother ->color == 1){
       bool all_black = true;
       
@@ -880,27 +1164,35 @@ template<
 
       if(all_black){
         brother->color = 0 ; //兄弟染红
-        father->color = 2; // 双黑上移
-        adjust_delete_node(father); //父亲处理双黑
+        if(father->color == 0){
+          /*父亲是红色*/
+          father->color = 1;
+          return;
+        }else{
+          /*父亲是黑色*/
+          father->color = 2;
+          adjust_delete_node(father);
+          return;
+        }
         return;
       }else{
         /*有红色*/
-        if(father->left == brother && bro_left->color == 0){
+        if(father->left == brother && bro_left != nullptr &&bro_left->color == 0){
           //LL型
           del_LL(father);
           return;
         }
-        else if(father->left == brother && bro_right->color == 0){
+        else if(father->left == brother&& bro_right != nullptr && bro_right->color == 0){
           //LR
           del_LR(father);
           return;
         }
-        else if(father->right == brother && bro_left->color == 0){
+        else if(father->right == brother&& bro_left != nullptr && bro_left->color == 0){
           //RL
           del_RL(father);
           return;
         }
-        else if(father->right == brother && bro_right->color == 0){
+        else if(father->right == brother && bro_right != nullptr && bro_right->color == 0){
           //RR
           del_RR(father);
           return;
@@ -928,11 +1220,19 @@ template<
         if(grandpa != nullptr && grandpa->right == father) new_left_right = 1;
         /*父亲左旋*/
         father->right = brother->left;
+        if(brother->left != nullptr) brother->left->parent = father;
         brother->left = father;
         father->parent = brother;
         brother->parent = grandpa;
         if(grandpa != nullptr){
-          (new_left_right)? grandpa->right:grandpa->left = brother;
+          if(new_left_right){
+            grandpa->right = brother;
+          }else{
+            grandpa->left = brother;
+          }
+        }else{
+          /*father原本是根*/
+          this->root_node = brother;
         }
       }else{
         /*双黑在右侧*/
@@ -941,11 +1241,19 @@ template<
         if(grandpa != nullptr && grandpa->right == father) new_left_right = 1;
 
         father->left = brother->right;
+        if(brother->right != nullptr) brother->right->parent = father;
         brother->right = father;
         father->parent = brother;
         brother->parent = grandpa;
         if(grandpa != nullptr){
-          (new_left_right)? grandpa->right:grandpa->left = brother;
+          if(new_left_right){
+            grandpa->right = brother;
+          }else{
+            grandpa->left = brother;
+          }
+        }else{
+          /*father原本是根*/
+          this->root_node = brother;
         }
       }
       /*旋转处理完了*/
@@ -969,10 +1277,18 @@ template<
     father->left = brother->right;
     brother->right = father;
 
+    if(father->left != nullptr) father->left->parent = father;
+
     brother->parent = grandpa;
     father->parent = brother;
     if(grandpa != nullptr){
-      (left_right)? grandpa->right:grandpa->left = father;
+      if(left_right){
+            grandpa->right = brother;
+          }else{
+            grandpa->left = brother;
+          }
+    }else{
+      root_node = brother;
     }
   }
   void del_RR(Node* father){
@@ -990,11 +1306,19 @@ template<
     father->right = brother->left;
     brother->left = father;
 
+    if(father->right != nullptr) father->right->parent = father;
+
     brother->parent = grandpa;
     father->parent = brother;
 
     if(grandpa != nullptr){
-      (left_right)? grandpa->right:grandpa->left = father;
+      if(left_right){
+            grandpa->right = brother;
+          }else{
+            grandpa->left = brother;
+          }
+    }else{
+      root_node = brother;
     }
   }
   void del_RL(Node* father){
@@ -1002,7 +1326,7 @@ template<
     size_t left_right = 0;
     if(grandpa!=nullptr && grandpa->right == father) left_right = 1;
     Node* brother = father->right;
-    Node* brother_son = brother->right;
+    Node* brother_son = brother->left;
 
     /*RL 变色*/
     brother_son ->color = father->color;
@@ -1012,19 +1336,29 @@ template<
     brother->left = brother_son->right;
     brother_son->right = brother;
 
+    if(brother->left != nullptr) brother->left->parent = brother;
+
     brother->parent = brother_son;
     brother_son->parent = father;
-    father->left = brother_son;
+    father->right = brother_son;
 
     /*再左旋*/
-    father->right = brother->left;
-    brother->left = father;
+    father->right = brother_son->left;
+    brother_son->left = father;
 
-    brother->parent = grandpa;
-    father->parent = brother;
+    if(father->right != nullptr) father->right->parent = father;
+
+    brother_son->parent = grandpa;
+    father->parent = brother_son;
 
     if(grandpa != nullptr){
-      (left_right)? grandpa->right:grandpa->left = father;
+      if(left_right){
+            grandpa->right = brother_son;
+          }else{
+            grandpa->left = brother_son;
+          }
+    }else{
+      root_node = brother_son;
     }
   }
   void del_LR(Node* father){
@@ -1042,22 +1376,40 @@ template<
     brother->right = brother_son->left;
     brother_son->left = brother;
 
+    if(brother->right != nullptr) brother->right->parent = brother;
+
     brother->parent = brother_son;
     brother_son->parent = father;
     father->left = brother_son;
 
     /*再右旋*/
-    father->left = brother->right;
-    brother->right = father;
+    father->left = brother_son->right;
+    brother_son->right = father;
 
-    brother->parent = grandpa;
-    father->parent = brother;
+    if(father->left != nullptr) father->left->parent = father;
+
+    brother_son->parent = grandpa;
+    father->parent = brother_son;
 
     if(grandpa != nullptr){
-      (left_right)? grandpa->right:grandpa->left = father;
+      if(left_right){
+            grandpa->right = brother_son;
+          }else{
+            grandpa->left = brother_son;
+          }
+    }else{
+      root_node = brother_son;
     }
   }
-  
+
+  size_t debug_height(Node* node){
+    if(node == nullptr) return 0;
+    size_t l = debug_height(node->left);
+    size_t r = debug_height(node->right);
+    return (l > r ? l : r) + 1;
+  }
+
+
 };
-}
+};
 #endif

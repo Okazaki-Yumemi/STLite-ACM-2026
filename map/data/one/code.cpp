@@ -3,6 +3,8 @@
 #include <cassert>
 #include <string>
 
+
+
 class Integer {
 public:
 	static int counter;
@@ -56,6 +58,7 @@ void tester(void) {
 			assert(result.second);
 		}
 	}
+	std::cerr << "height after insert = " << map.debug_height(map.root_node) << std::endl;
 	//	test: count(), find(), erase()
 	for (int i = 0; i < 100000; ++i) {
 		if (i > 1896 && i <= 2016) {
@@ -64,6 +67,13 @@ void tester(void) {
 		assert(map.count(Integer(i)) == 1);
 		assert(map.find(Integer(i)) != map.end());
 		map.erase(map.find(Integer(i)));
+		if (i % 10000 == 0) {
+    	std::cerr
+        	<< "i = " << i
+        	<< ", size = " << map.size()
+        	<< ", height = " << map.debug_height(map.root_node)
+        	<< std::endl;
+		}
 	}
 	//	test: constructor, operator=, clear();
 	for (int i = 0; i < (int)map.size(); ++i) {
