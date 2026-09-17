@@ -151,3 +151,82 @@ new (new_block_lists[new_block_index].data[new_new_offset] ) T(val);
 是一样的，前者是对指针进行偏移，后者是对数组进行访问，最终得到的都是一个T对象的地址。
 
 
+# 总结
+
+## 最终采用的整体结构
+### block数组
+```cpp
+deque
+|
+|---- block* block_lists
+|---- size_t deque_capacity
+|---- size_t first_block
+|---- size_t first_offset
+|---- size_t current_size
+```
+### block类
+```cpp
+class block
+{
+public:
+	size_t block_capacity;
+	T* data;
+}
+```
+block只负责分配原始内存和释放原始内存，T元素的构造统一由deque来管理。
+
+## T不需要默认构造函数
+沿用 operator new 分配 raw memory
+placement new 来构造实际元素
+显式析构删除元素
+
+## 坐标映射 deque的核心公式
+对于逻辑下表i，计算全局偏移
+```cpp
+block_index = first_block + (first_offset + i) / block_capacity
+new_offset = i + first_offset - (block_index - first_block) * block_capacity
+```
+我们所有的at\operator[]\iterator * \ insert \ erase \ copy \ clear \ destructor \ resize 都是用的这套体系
+
+### 此处的一个bug错误
+insert() \ erase()  里边一度发生了
+front_one__offset 错用了 block_index
+
+next_new_offset 错用了 this_block_index
+
+## Block map扩容
+```
+选择了不做循环数组、而是像vector内一样扩容block map
+当需要扩容时，分配一个新的block map，容量通常是当前容量的两倍。然后将原有的block指针复制到新的block map中，并更新相关的索引和容量信息。
+```
+
+### bug
+resize 忘了更新 deque_capacity 了，导致后续的push_back时误以为还有空间，结果越界访问了block map。
+
+## push_front
+```
+1. first_offset > 0，直接在当前block的前面插入元素，更新first_offset和current_size。
+2. first_offset == 0，说明当前block已经满了，需要在前面分配一个新的block。首先检查block map是否需要扩容，如果需要则进行扩容。然后在新的block中插入元素，更新first_block、first_offset和current_size。
+```
+
+过程中漏掉了 ```first_offset == 0 且 first_block > 0 ```的情况，这时虽然当前block满了，但前面还有空闲的block可以使用，不需要扩容。
+
+## iterator
+``` iterator = owner + logical_index ```  
+
+logical index 的处理非常方便
+
+### 最后的隐藏bug
+iterator解引用非法，忘了做错误拦截，没有检查
+```cpp
+owenr == nullptr || index >= owner->size() || index < 0
+```
+补上检查就解决了
+
+# STLite能力成长
+| 题目               | 主要训练                    |
+| ---------------- | ----------------------- |
+| `vector`         | raw memory、生命周期、扩容、连续数组 |
+| `priority_queue` | 树结构、合并、异常安全、指针森林        |
+| `deque`          | 分块存储、坐标系统、双端维护、iterator |
+
